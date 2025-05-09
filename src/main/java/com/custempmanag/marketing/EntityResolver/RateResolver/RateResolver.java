@@ -1,4 +1,4 @@
-package com.custempmanag.marketing.EntityResolver.RateResolver.Factory;
+package com.custempmanag.marketing.EntityResolver.RateResolver;
 
 import com.custempmanag.marketing.model.Rating;
 

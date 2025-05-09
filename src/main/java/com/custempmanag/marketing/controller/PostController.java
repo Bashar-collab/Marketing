@@ -106,7 +106,7 @@ public class PostController {
     }
 
     // MUST CHECK THIS ISSUE LATER
-    @GetMapping("/api/offerings/{offeringId}/posts")
+    @GetMapping("/offerings/{offeringId}/posts")
     public ResponseEntity<MessageResponse> getPostsByOfferingId(@PathVariable Long offeringId) {
         logger.info("Fetching posts by offering id {}", offeringId);
         MessageResponse messageResponse = postService.getPostsByOfferingId(offeringId);

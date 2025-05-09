@@ -1,8 +1,7 @@
 package com.custempmanag.marketing.EntityResolver.RateResolver.Factory;
 
-import com.custempmanag.marketing.EntityResolver.ProfileResolver.ProfileResolver;
+import com.custempmanag.marketing.EntityResolver.RateResolver.RateResolver;
 import com.custempmanag.marketing.model.Rating;
-import com.custempmanag.marketing.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
