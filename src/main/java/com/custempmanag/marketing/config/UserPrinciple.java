@@ -25,10 +25,8 @@ public class UserPrinciple implements UserDetails {
 
     public static UserPrinciple create(User user) {
         List<GrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_" + user.getProfileType().toUpperCase())
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().getName().toUpperCase())
         );
-
-
         return new UserPrinciple(
                 user.getId(),
                 user.getUsername(),

@@ -5,10 +5,14 @@ import com.custempmanag.marketing.config.JwtConfig;
 import com.custempmanag.marketing.config.UserPrinciple;
 import com.custempmanag.marketing.exception.CustomException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
+import com.custempmanag.marketing.model.Permission;
+import com.custempmanag.marketing.model.Role;
 import com.custempmanag.marketing.model.User;
+import com.custempmanag.marketing.repository.RoleRepository;
 import com.custempmanag.marketing.repository.UserRepository;
 import com.custempmanag.marketing.request.ChangePasswordRequest;
 import com.custempmanag.marketing.request.RegisterRequest;
+import com.custempmanag.marketing.response.LoginResponse;
 import com.custempmanag.marketing.response.MessageResponse;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -28,6 +32,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.nio.file.attribute.UserPrincipal;
 import java.security.KeyPair;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
@@ -39,6 +45,8 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private RoleRepository roleRepository;
 
 
     public AuthService(UserRepository userRepository, JwtConfig jwtConfig,
@@ -84,6 +92,9 @@ public class AuthService {
         logger.debug("User object created: {}", user);
 
         logger.info("User's profile {}", user.getProfileType());
+        Role role = roleRepository.findByName(user.getProfileType().toUpperCase())
+                .orElseThrow(()-> new CustomException("Role not found"));
+        user.setRole(role);
         // Create the appropriate profile based on the selected type
         Long profileId = profileResolverFactory.createProfile(user);
 
@@ -106,7 +117,15 @@ public class AuthService {
         }
         // THE ERROR IS IN THE LINE BELOW, DON'T FORGET TO DO IT TOMORROW
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-        return new MessageResponse(HttpStatus.OK.toString(), "User logged in successfully!", jwtConfig.generateToken(username, keyPair));
+//        Set<Permission> permissions = user.getRole().getPermissions();
+
+//        return new MessageResponse(HttpStatus.OK.toString(), "User logged in successfully!",
+//                jwtConfig.generateToken(username, keyPair));
+        return new MessageResponse(HttpStatus.OK.toString(), "User logged in successfully!",
+                    new LoginResponse(jwtConfig.generateToken(username, keyPair),
+                            user.getRole().getName(), user.getRole().getPermissions()
+                            .stream().map(permission -> permission.getCode())
+                            .collect(Collectors.toSet())));
     }
 
     public MessageResponse logout(String authHeader) {

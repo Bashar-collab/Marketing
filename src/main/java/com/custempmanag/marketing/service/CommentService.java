@@ -115,8 +115,12 @@ public class CommentService {
     public MessageResponse getCommentDetails(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+
+//        return new MessageResponse(HttpStatus.OK.toString(), "Comment details are retrieved successfully!",
+//                modelMapper.map(comment, CommentResponse.class));
         return new MessageResponse(HttpStatus.OK.toString(), "Comment details are retrieved successfully!",
-                modelMapper.map(comment, CommentResponse.class));
+                mapToCommentResponse(comment));
+
     }
 
     private CommentResponse mapToCommentResponse(Comment comment) {

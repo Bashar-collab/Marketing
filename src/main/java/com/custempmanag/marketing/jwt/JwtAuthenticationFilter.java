@@ -1,7 +1,12 @@
 package com.custempmanag.marketing.jwt;
 
 import com.custempmanag.marketing.config.JwtConfig;
+import com.custempmanag.marketing.config.UserPrinciple;
+import com.custempmanag.marketing.exception.ResourceNotFoundException;
+import com.custempmanag.marketing.model.Permission;
+import com.custempmanag.marketing.model.User;
 import com.custempmanag.marketing.service.TokenBlacklistService;
+import com.custempmanag.marketing.service.UserService;
 import io.jsonwebtoken.JwtParser;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -14,13 +19,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -35,6 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtParser jwtParser;
 
     private final TokenBlacklistService tokenBlacklistService;
+    @Autowired
+    private UserService userService;
 
     public JwtAuthenticationFilter(JwtConfig jwtConfig, UserDetailsService userDetailsService,
                                    TokenBlacklistService tokenBlacklistService) {
@@ -71,12 +78,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (jwtConfig.validateToken(token, userDetails, jwtParser)) {
 
                     // Extract roles from token
-                    String role = jwtConfig.extractRoles(token, jwtParser);
+//                    String role = jwtConfig.extractRoles(token, jwtParser);
+                    String role = userService.getUserRoles(username);
 
                     // Create authority list
-                    List<GrantedAuthority> authorities = Collections.singletonList(
-                            new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())
-                    );
+                    List<GrantedAuthority> authorities = new ArrayList<>();
+                            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+
+                    User user = userService.getRoleAndPermissions(username)
+                            .orElseThrow(() -> new ResourceNotFoundException("User " + username + " not found"));
+                    Set<Permission> permissions = user.getRole().getPermissions();
+
+                    permissions.forEach(perm ->
+                            authorities.add(new SimpleGrantedAuthority(perm.getCode())));
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);

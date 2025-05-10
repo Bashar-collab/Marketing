@@ -20,9 +20,6 @@ public class User {
 
     private String username;
 
-//    @NotBlank(message = "Email cannot be empty")
-//    @Email(message = "Invalid Email")  // Ensure email is in a valid format
-//    @Column(unique = true)
     private String email;
 
     private String password;
@@ -31,15 +28,18 @@ public class User {
 
     private String address;
 
-    @NotNull
     @Column(nullable = false)
-    private boolean verified = false;
+    private boolean verified = true;
 
     @Column(name = "profile_id")
     private Long profileId;
 
     @Column(name = "profile_type")
     private String profileType;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role;
 
     @Column(name = "profile_picture")
     private String profilePicture;

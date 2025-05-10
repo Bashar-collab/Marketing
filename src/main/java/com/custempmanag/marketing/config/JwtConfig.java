@@ -54,13 +54,15 @@ public class JwtConfig {
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 //        KeyPair keyPair = new KeyPair;
 
+        /*
         String role = userDetails.getAuthorities().stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
                 .map(auth -> auth.replace("ROLE_", ""))
                 .orElse("USER");
 
-        claims.put("role", role);
+//        claims.put("role", role);
+         */
         return createToken(claims, userDetails.getUsername(), keyPair);
     }
 

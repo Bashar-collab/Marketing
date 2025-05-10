@@ -5,8 +5,7 @@ import com.custempmanag.marketing.exception.ResourceNotFoundException;
 import com.custempmanag.marketing.model.*;
 import com.custempmanag.marketing.repository.OfferingRepository;
 import com.custempmanag.marketing.repository.PostRepository;
-import com.custempmanag.marketing.request.CreatePostRequest;
-import com.custempmanag.marketing.request.UpdatePostRequest;
+import com.custempmanag.marketing.request.PostRequest;
 import com.custempmanag.marketing.response.MessageResponse;
 import com.custempmanag.marketing.response.PostResponse;
 import jakarta.transaction.Transactional;
@@ -37,7 +36,7 @@ public class PostService {
 
 //    @RateLimited(10) NEED TO ADD THIS IN THE FUTURE
     @Transactional
-    public MessageResponse createPost(CreatePostRequest createPostRequest, UserPrinciple currentUser) {
+    public MessageResponse createPost(PostRequest createPostRequest, UserPrinciple currentUser) {
         logger.info("Creating offering for id {}", currentUser.getId());
         User user = userService.validateAndGetUserById(currentUser.getId());
         logger.info("User id {}", user.getId());
@@ -73,7 +72,7 @@ public class PostService {
     }
 
     @Transactional
-    public MessageResponse updatePost(Long postId, UpdatePostRequest updatePostRequest) {
+    public MessageResponse updatePost(Long postId, PostRequest updatePostRequest) {
         logger.info("Updating post for id {}", postId);
         Post post = postRepository.findById(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("post is not found"));
@@ -82,7 +81,10 @@ public class PostService {
 //                .orElseThrow(()-> new ResourceNotFoundException("Category not found"));
 
 //        offering.setCategory(category);
-        modelMapper.map(updatePostRequest, post);
+//        modelMapper.map(updatePostRequest, post);
+        post.setTitle(updatePostRequest.getTitle());
+        post.setDescription(updatePostRequest.getDescription());
+        post.setContent(updatePostRequest.getContent());
         Post savedPost = postRepository.save(post);
         return new MessageResponse(HttpStatus.OK.toString(), "Post is updated successfully!",
                 modelMapper.map(savedPost, PostResponse.class));

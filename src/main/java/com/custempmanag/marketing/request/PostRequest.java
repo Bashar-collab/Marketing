@@ -5,7 +5,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class UpdatePostRequest {
+public class PostRequest {
+
+    private Long offeringId;
 
     @NotBlank(message = "Title is required")
     @Size(min = 3, max = 50, message = "Title of the post must be between 3 and 50 characters")
@@ -16,4 +18,5 @@ public class UpdatePostRequest {
     @NotBlank(message = "Content is required")
     @Size(min = 3, message = "Content must be at least 3 characters")
     private String content;
+
 }

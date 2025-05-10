@@ -20,10 +20,8 @@ package com.custempmanag.marketing.controller;
  */
 
 import com.custempmanag.marketing.config.UserPrinciple;
-import com.custempmanag.marketing.request.CreatePostRequest;
-import com.custempmanag.marketing.request.UpdatePostRequest;
+import com.custempmanag.marketing.request.PostRequest;
 import com.custempmanag.marketing.response.MessageResponse;
-import com.custempmanag.marketing.response.PostResponse;
 import com.custempmanag.marketing.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +32,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -48,7 +44,7 @@ public class PostController {
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
 
     @PostMapping("/posts")
-    public ResponseEntity<MessageResponse> createPost(@Valid @RequestBody CreatePostRequest createPostRequest,
+    public ResponseEntity<MessageResponse> createPost(@Valid @RequestBody PostRequest createPostRequest,
                                         @AuthenticationPrincipal UserPrinciple currentUser) {
         logger.info("Create post for user: {}", currentUser.getUsername());
         MessageResponse messageResponse = postService.createPost(createPostRequest, currentUser);
@@ -74,7 +70,7 @@ public class PostController {
 
     // DON'T FORGET THESE TMW
     @PutMapping("/posts/{postId}")
-    public ResponseEntity<MessageResponse> updatePost(@PathVariable Long postId, @Valid @RequestBody UpdatePostRequest updatePostRequest)
+    public ResponseEntity<MessageResponse> updatePost(@PathVariable Long postId, @Valid @RequestBody PostRequest updatePostRequest)
     {
         logger.info("Updating post with id {}", postId);
         MessageResponse messageResponse = postService.updatePost(postId, updatePostRequest);
