@@ -70,17 +70,20 @@ public class PostController {
 
     // DON'T FORGET THESE TMW
     @PutMapping("/posts/{postId}")
-    public ResponseEntity<MessageResponse> updatePost(@PathVariable Long postId, @Valid @RequestBody PostRequest updatePostRequest)
+    public ResponseEntity<MessageResponse> updatePost(@PathVariable Long postId,
+                                                      @Valid @RequestBody PostRequest updatePostRequest,
+                                                      @AuthenticationPrincipal UserPrinciple currentUser)
     {
         logger.info("Updating post with id {}", postId);
-        MessageResponse messageResponse = postService.updatePost(postId, updatePostRequest);
+        MessageResponse messageResponse = postService.updatePost(postId, updatePostRequest, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
     @DeleteMapping("/posts/{postId}")
-    public ResponseEntity<MessageResponse> deletePost(@PathVariable Long postId) {
+    public ResponseEntity<MessageResponse> deletePost(@PathVariable Long postId,
+                                                      @AuthenticationPrincipal UserPrinciple currentUser) {
         logger.info("Deleting post with id {}", postId);
-        MessageResponse messageResponse = postService.deletePost(postId);
+        MessageResponse messageResponse = postService.deletePost(postId, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 

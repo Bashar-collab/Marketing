@@ -2,6 +2,7 @@ package com.custempmanag.marketing.service;
 
 import com.custempmanag.marketing.config.UserPrinciple;
 import com.custempmanag.marketing.controller.OfferingController;
+import com.custempmanag.marketing.exception.DenyAccessException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
 import com.custempmanag.marketing.model.Comment;
 import com.custempmanag.marketing.model.Post;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CommentService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CommentService.class);
+//    private static final Logger logger = LoggerFactory.getLogger(CommentService.class);
 
     private final CommentRepository commentRepository;
 
@@ -84,20 +85,33 @@ public class CommentService {
 
     @Transactional
     public MessageResponse updateComment(Long commentId,
-                                         CommentRequest commentRequest)
+                                         CommentRequest commentRequest,
+                                         UserPrinciple currentUser)
     {
+        User user = userService.validateAndGetUserById(currentUser.getId());
+
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+
+        if(comment.getUser().getId() != user.getId())
+            throw new DenyAccessException("Access Denied");
+
         modelMapper.map(commentRequest, comment);
         commentRepository.save(comment);
         return new MessageResponse(HttpStatus.OK.toString(), "Comment updated successfully", null);
     }
 
     @Transactional
-    public MessageResponse deleteComment(Long commentId)
+    public MessageResponse deleteComment(Long commentId, UserPrinciple currentUser)
     {
+        User user = userService.validateAndGetUserById(currentUser.getId());
+
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+
+        if(comment.getUser().getId() != user.getId())
+            throw new DenyAccessException("Access Denied");
+
         commentRepository.delete(comment);
         return new MessageResponse(HttpStatus.OK.toString(), "Comment deleted successfully", null);
     }

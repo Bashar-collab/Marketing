@@ -71,17 +71,20 @@ public class OfferingController {
     }
 
     @PutMapping("/offerings/{offeringId}")
-    public ResponseEntity<MessageResponse> updateOffering(@PathVariable Long offeringId, @Valid @RequestBody OfferingRequest offeringRequest)
+    public ResponseEntity<MessageResponse> updateOffering(@PathVariable Long offeringId,
+                                                          @Valid @RequestBody OfferingRequest offeringRequest,
+                                                          @AuthenticationPrincipal UserPrinciple currentUser)
     {
         logger.info("Updating offering with id {}", offeringId);
-        MessageResponse messageResponse = offeringService.updateOffering(offeringId, offeringRequest);
+        MessageResponse messageResponse = offeringService.updateOffering(offeringId, offeringRequest, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
     @DeleteMapping("/offerings/{offeringId}")
-    public ResponseEntity<MessageResponse> deleteOffering(@PathVariable Long offeringId) {
+    public ResponseEntity<MessageResponse> deleteOffering(@PathVariable Long offeringId,
+                                                          @AuthenticationPrincipal UserPrinciple currentUser) {
         logger.info("Deleting offering with id {}", offeringId);
-        MessageResponse messageResponse = offeringService.deleteOffering(offeringId);
+        MessageResponse messageResponse = offeringService.deleteOffering(offeringId, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 

@@ -1,6 +1,7 @@
 package com.custempmanag.marketing.service;
 
 import com.custempmanag.marketing.config.UserPrinciple;
+import com.custempmanag.marketing.exception.DenyAccessException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
 import com.custempmanag.marketing.model.*;
 import com.custempmanag.marketing.repository.OfferingRepository;
@@ -30,6 +31,7 @@ public class PostService {
     private final OwnerService ownerService;
 
     private static final Logger logger = LoggerFactory.getLogger(PostService.class);
+
     private final PostRepository postRepository;
 
     private final OfferingRepository offeringRepository;
@@ -72,10 +74,16 @@ public class PostService {
     }
 
     @Transactional
-    public MessageResponse updatePost(Long postId, PostRequest updatePostRequest) {
+    public MessageResponse updatePost(Long postId, PostRequest updatePostRequest, UserPrinciple currentUser) {
         logger.info("Updating post for id {}", postId);
+
+        User user = userService.validateAndGetUserById(currentUser.getId());
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("post is not found"));
+
+        if(checkOwnership(user.getId(), post.getOwner().getId()))
+            throw new DenyAccessException("Access Denied");
 
 //        Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
 //                .orElseThrow(()-> new ResourceNotFoundException("Category not found"));
@@ -91,10 +99,15 @@ public class PostService {
     }
 
     @Transactional
-    public MessageResponse deletePost(Long postId) {
+    public MessageResponse deletePost(Long postId, UserPrinciple currentUser) {
         logger.info("Deleting post for id {}", postId);
+        User user = userService.validateAndGetUserById(currentUser.getId());
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(()-> new ResourceNotFoundException("Post is not found"));
+
+        if(checkOwnership(user.getId(), post.getOwner().getId()))
+            throw new DenyAccessException("Access Denied");
 
         postRepository.delete(post);
         return new MessageResponse(HttpStatus.OK.toString(), "Post is deleted successfully", null);
@@ -135,4 +148,8 @@ public class PostService {
     /*
 
      */
+
+    private boolean checkOwnership(Long userId, Long ownerId) {
+        return !userId.equals(ownerId);
+    }
 }

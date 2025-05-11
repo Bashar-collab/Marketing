@@ -10,6 +10,7 @@ import java.util.Set;
 public class RoleRequest {
     private String name;
     private String description;
+    private String code;
     @NotEmpty
     private Set<@NotBlank String> permissions;
 

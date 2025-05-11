@@ -69,6 +69,16 @@ class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);  // 404 Not Found
     }
 
+    @ExceptionHandler(DenyAccessException.class)
+    public ResponseEntity<?> handleDenyAccessException(DenyAccessException ex) {
+        MessageResponse response = new MessageResponse(
+                HttpStatus.UNAUTHORIZED.toString(),
+                ex.getMessage(),
+                null
+        );
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
     // Handle @RequestParam, @PathVariable, and @Validated service layer validation
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<?> handleConstraintViolation(ConstraintViolationException ex) {

@@ -1,7 +1,7 @@
 package com.custempmanag.marketing.service;
 
 import com.custempmanag.marketing.config.UserPrinciple;
-import com.custempmanag.marketing.exception.CustomException;
+import com.custempmanag.marketing.exception.DenyAccessException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
 import com.custempmanag.marketing.model.Category;
 import com.custempmanag.marketing.model.Offering;
@@ -21,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,10 +75,15 @@ public class OfferingService {
     }
 
     @Transactional
-    public MessageResponse updateOffering(Long offeringId, OfferingRequest offeringRequest) {
+    public MessageResponse updateOffering(Long offeringId, OfferingRequest offeringRequest, UserPrinciple currentUser) {
         logger.info("Updating offering for id {}", offeringId);
+        User user = userService.validateAndGetUserById(currentUser.getId());
+
         Offering offering = offeringRepository.findById(offeringId)
                 .orElseThrow(()-> new ResourceNotFoundException("Offering is not found"));
+
+        if (checkOwnership(user.getId(), offering.getOwner().getId()))
+            throw new DenyAccessException("Access Denied");
 
         Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
                 .orElseThrow(()-> new ResourceNotFoundException("Category not found"));
@@ -90,10 +94,15 @@ public class OfferingService {
     }
 
     @Transactional
-    public MessageResponse deleteOffering(Long offeringId) {
+    public MessageResponse deleteOffering(Long offeringId, UserPrinciple currentUser) {
         logger.info("Deleting offering for id {}", offeringId);
+        User user = userService.validateAndGetUserById(currentUser.getId());
+
         Offering offering = offeringRepository.findById(offeringId)
                 .orElseThrow(()-> new ResourceNotFoundException("Offering is not found"));
+
+        if (checkOwnership(user.getId(), offering.getOwner().getId()))
+            throw new DenyAccessException("Access Denied");
 
         offeringRepository.delete(offering);
         return new MessageResponse(HttpStatus.OK.toString(), "Offering is deleted successfully", null);
@@ -116,5 +125,10 @@ public class OfferingService {
         return new MessageResponse(HttpStatus.OK.toString(), "Offerings are retrieved successfully!", offerings.stream()
                 .map(offering -> modelMapper.map(offering, OfferingResponse.class))
                 .collect(Collectors.toList()));
+    }
+
+
+    private boolean checkOwnership(Long userId, Long ownerId) {
+        return !userId.equals(ownerId);
     }
 }

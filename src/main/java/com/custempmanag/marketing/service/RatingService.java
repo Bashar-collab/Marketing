@@ -10,6 +10,7 @@ import com.custempmanag.marketing.repository.PostRepository;
 import com.custempmanag.marketing.repository.RatingRepository;
 import com.custempmanag.marketing.request.RatingRequest;
 import com.custempmanag.marketing.response.MessageResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
@@ -31,6 +32,7 @@ public class RatingService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
 
+    @Transactional
     public MessageResponse addOfferingRating(Long offeringId, RatingRequest ratingRequest, UserPrinciple currentUser) {
 
         logger.info("Adding rating for offering {}", offeringId);
@@ -68,6 +70,7 @@ public class RatingService {
         return new MessageResponse(HttpStatus.OK.toString(), "Rating retrieved successfully", rate);
     }
 
+    @Transactional
     public MessageResponse addPostRating(Long postId, RatingRequest ratingRequest, UserPrinciple currentUser) {
 
         logger.info("Adding rating for post {}", postId);
@@ -105,6 +108,7 @@ public class RatingService {
         return new MessageResponse(HttpStatus.OK.toString(), "Rating retrieved successfully", rate);
     }
 
+    @Transactional
     public MessageResponse addCommentRating(Long commentId, RatingRequest ratingRequest, UserPrinciple currentUser) {
 
         logger.info("Adding rating for comment {}", commentId);

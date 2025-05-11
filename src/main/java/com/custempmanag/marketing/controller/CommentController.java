@@ -66,18 +66,20 @@ public class CommentController {
 
     @PutMapping("/comments/{commentId}")
     public ResponseEntity<MessageResponse> updateComment(@PathVariable Long commentId,
-                                           @Valid @RequestBody CommentRequest commentRequest)
+                                                         @Valid @RequestBody CommentRequest commentRequest,
+                                                         @AuthenticationPrincipal UserPrinciple currentUser)
     {
         logger.info("Updating comment {}", commentId);
-        MessageResponse messageResponse = commentService.updateComment(commentId, commentRequest);
+        MessageResponse messageResponse = commentService.updateComment(commentId, commentRequest, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
     @DeleteMapping("/comments/{commentId}")
-    public ResponseEntity<MessageResponse> deleteComment(@PathVariable Long commentId)
+    public ResponseEntity<MessageResponse> deleteComment(@PathVariable Long commentId,
+                                                         @AuthenticationPrincipal UserPrinciple currentUser)
     {
         logger.info("Deleting comment {}", commentId);
-        MessageResponse messageResponse = commentService.deleteComment(commentId);
+        MessageResponse messageResponse = commentService.deleteComment(commentId, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
