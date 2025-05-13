@@ -75,4 +75,28 @@ public class RolePermissionService {
         return new MessageResponse(HttpStatus.OK.toString(), "Permissions with this role is retrieved successfully!", permissions);
 
     }
+
+    public MessageResponse assignPermissionToRole(Long roleId, Long permissionId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found!"));
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Permission not found!"));
+
+        role.getPermissions().add(permission);
+        roleRepository.save(role);
+        return new MessageResponse(HttpStatus.OK.toString(), "Permission added successfully!", null);
+    }
+
+    public MessageResponse removePermissionFromRole(Long roleId, Long permissionId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found!"));
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Permission not found!"));
+
+        role.getPermissions().remove(permission);
+        roleRepository.save(role);
+        return new MessageResponse(HttpStatus.OK.toString(), "Permission removed successfully!", null);
+    }
 }

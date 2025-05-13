@@ -18,7 +18,9 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -69,6 +71,9 @@ public class AuthService {
     @Autowired
     private ProfileResolverFactory profileResolverFactory;
 
+    @Autowired
+    private MessageSource messageSource;
+
     @Transactional
     public MessageResponse registerUser(RegisterRequest registerRequest)
     {
@@ -77,13 +82,16 @@ public class AuthService {
         if(userRepository.existsByUsername(registerRequest.getUsername()))
         {
             logger.info("Username is already in use, try another one");
-            throw new CustomException("Username is already in use");
+
+            throw new
+                    CustomException(messageSource.getMessage("username.register.exists", null, LocaleContextHolder.getLocale()));
         }
 
         if(userRepository.existsByPhoneNumber(registerRequest.getPhoneNumber()))
         {
             logger.info("Phone number is already in use, try another one");
-            throw new CustomException("Phone number is already in use");
+            throw new
+                    CustomException(messageSource.getMessage("phone-number.register.exists", null, LocaleContextHolder.getLocale()));
         }
         User user = modelMapper.map(registerRequest, User.class);
         // Saving user's credentials
@@ -93,7 +101,8 @@ public class AuthService {
 
         logger.info("User's profile {}", user.getProfileType());
         Role role = roleRepository.findByName(user.getProfileType().toUpperCase())
-                .orElseThrow(()-> new CustomException("Role not found"));
+                .orElseThrow(()-> new CustomException(messageSource.getMessage("role.not.found", null, LocaleContextHolder.getLocale())));
+
         user.setRole(role);
         // Create the appropriate profile based on the selected type
         Long profileId = profileResolverFactory.createProfile(user);
@@ -105,15 +114,19 @@ public class AuthService {
         // Save the user
         userRepository.save(user);
         logger.info("User registered successfully with ID: {}", user.getId());
-        return new MessageResponse(HttpStatus.CREATED.toString(), "User registered successfully!", user.getUsername());
+        String localizedMessage = messageSource.getMessage("user.register.success", null, LocaleContextHolder.getLocale());
+        return new MessageResponse(HttpStatus.CREATED.toString(), localizedMessage, user.getUsername());
     }
 
     public MessageResponse authenticate(String username, String password) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found")); // Debug point
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(messageSource.getMessage("user.not.found", null, LocaleContextHolder.getLocale()))); // I SHOULD RETURN TO HERE
+        // Debug point
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new CustomException("Invalid password"); // Debug point
+            throw new CustomException(
+                    messageSource.getMessage("auth.password.invalid", null, LocaleContextHolder.getLocale())); // Debug point
         }
         // THE ERROR IS IN THE LINE BELOW, DON'T FORGET TO DO IT TOMORROW
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
@@ -121,7 +134,8 @@ public class AuthService {
 
 //        return new MessageResponse(HttpStatus.OK.toString(), "User logged in successfully!",
 //                jwtConfig.generateToken(username, keyPair));
-        return new MessageResponse(HttpStatus.OK.toString(), "User logged in successfully!",
+        String localizedMessage = messageSource.getMessage("auth.login.success", null, LocaleContextHolder.getLocale());
+        return new MessageResponse(HttpStatus.OK.toString(), localizedMessage,
                     new LoginResponse(jwtConfig.generateToken(username, keyPair),
                             user.getRole().getName(), user.getRole().getPermissions()
                             .stream().map(permission -> permission.getCode())
@@ -140,7 +154,9 @@ public class AuthService {
         // Clear the security context
         SecurityContextHolder.clearContext();
 
-        return new MessageResponse(HttpStatus.OK.toString(), "User logged out successfully", null);
+        return new MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("user.logout.success", null, LocaleContextHolder.getLocale()),
+                null);
     }
 
     private String extractToken(String authHeader) {
@@ -152,14 +168,18 @@ public class AuthService {
 
     public MessageResponse changePassword(ChangePasswordRequest changePasswordRequest, UserPrinciple currentUser) {
         User user = userRepository.findByUsername(currentUser.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(messageSource.getMessage("user.not.found", null, LocaleContextHolder.getLocale())));
         if(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPassword()))
         {
             user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
             userRepository.save(user);
-            return new MessageResponse(HttpStatus.OK.toString(), "Password changed successfully", null);
+            return new MessageResponse(HttpStatus.OK.toString(),
+                    messageSource.getMessage("user.password-change.success", null, LocaleContextHolder.getLocale()),
+                    null);
         }
-        throw new CustomException("Invalid password");
+        throw new
+                CustomException(messageSource.getMessage("auth.password.invalid", null, LocaleContextHolder.getLocale()));
 
     }
     /*

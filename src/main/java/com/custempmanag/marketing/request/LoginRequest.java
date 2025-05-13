@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequest {
     @NotBlank
-//    @JsonAlias("us")
     private String username;
 
     @NotBlank

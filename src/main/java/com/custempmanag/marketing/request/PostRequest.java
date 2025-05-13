@@ -9,14 +9,14 @@ public class PostRequest {
 
     private Long offeringId;
 
-    @NotBlank(message = "Title is required")
-    @Size(min = 3, max = 50, message = "Title of the post must be between 3 and 50 characters")
+    @NotBlank(message = "{post.title.notblank}")
+    @Size(min = 3, max = 50, message = "{post.title.size}")
     private String title;
 
     private String description;
 
-    @NotBlank(message = "Content is required")
-    @Size(min = 3, message = "Content must be at least 3 characters")
+    @NotBlank(message = "{post.content.notblank}")
+    @Size(min = 3, message = "{post.content.size}")
     private String content;
 
 }

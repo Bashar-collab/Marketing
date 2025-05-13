@@ -11,16 +11,16 @@ import java.math.BigDecimal;
 
 @Data
 public class OfferingRequest {
-    @NotBlank(message = "Name is required")
-    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
+    @NotBlank(message = "{name.notblank}")
+    @Size(min = 2, max = 100, message = "{name.size}")
     private String name;
 
-    @Size(max = 500, message = "Description cannot exceed 500 characters")
+    @Size(max = 500, message = "{description.size}")
     private String description;
 
     private String image;
 
-    @Positive(message = "Price must be positive")
+    @Positive(message = "{price.positive}")
     private BigDecimal price;
 
     private String categoryName;

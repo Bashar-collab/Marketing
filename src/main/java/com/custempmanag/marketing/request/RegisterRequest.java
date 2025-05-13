@@ -11,8 +11,8 @@ import lombok.Data;
 //@PasswordMatches
 @Data
 public class RegisterRequest {
-    @NotBlank(message = "Username cannot be empty")
-    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+    @NotBlank(message = "{username.notblank}")
+    @Size(min = 3, max = 20, message = "{username.size}")
     @Column(unique = true, nullable = false)
     private String username;
 
@@ -21,13 +21,13 @@ public class RegisterRequest {
 //    @Column(unique = true)
 //    private String email;
 
-    @NotBlank(message = "Password cannot be empty")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @NotBlank(message = "{password.notblank}")
+    @Size(min = 6, message = "{password.size}")
     private String password;
 
-    @NotBlank(message = "Phone number cannot be empty")
+    @NotBlank(message = "{phone.notblank}")
     @Column(unique = true, name = "phone_number")  // Unique constraint on phone number
-    @Pattern(regexp = "^09\\d{8}$") // Regex for phone number that should start with 09 and should be 10 digits
+    @Pattern(regexp = "^09\\d{8}$", message = "{phone.pattern}") // Regex for phone number that should start with 09 and should be 10 digits
     private String phoneNumber;
 
     private String address;

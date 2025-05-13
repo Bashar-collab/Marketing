@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class CommentRequest {
 
-    @NotBlank(message = "Comment must not be blank")
+    @NotBlank(message = "{comment.notblank}")
     private String content;
 }

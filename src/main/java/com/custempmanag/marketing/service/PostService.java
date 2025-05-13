@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +38,8 @@ public class PostService {
 
     private final OfferingRepository offeringRepository;
 
+    private final MessageSource messageSource;
+
 //    @RateLimited(10) NEED TO ADD THIS IN THE FUTURE
     @Transactional
     public MessageResponse createPost(PostRequest createPostRequest, UserPrinciple currentUser) {
@@ -48,17 +52,24 @@ public class PostService {
 
         if(createPostRequest.getOfferingId() != null) {
             Offering offering = offeringRepository.findById(createPostRequest.getOfferingId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Offering not found"));
+                    .orElseThrow(() -> new
+                            ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
             post.setOffering(offering);
         }
 
         Post savedPost = postRepository.save(post);
-        return new MessageResponse(HttpStatus.CREATED.toString(), "Post created successfully", savedPost.getId());
+        return new MessageResponse(
+                HttpStatus.CREATED.toString(),
+                messageSource.getMessage("post.create.success", null, LocaleContextHolder.getLocale()),
+                savedPost.getId());
     }
 
     public MessageResponse getAllPosts() {
         List<Post> posts = postRepository.findAll();
-        return new MessageResponse(HttpStatus.OK.toString(), "Posts are retrieved successfully!", posts.stream()
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("post.getAll.success", null, LocaleContextHolder.getLocale()),
+                posts.stream()
                 .map(post -> modelMapper.map(post, PostResponse.class))
                 .collect(Collectors.toList()));
     }
@@ -66,9 +77,12 @@ public class PostService {
     public MessageResponse getPost(Long postId) {
         logger.info("Get post for id {}", postId);
         Post post = postRepository.findById(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post is not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("post.not.found", null, LocaleContextHolder.getLocale())));
 
-        return new MessageResponse(HttpStatus.OK.toString(), "Post is retrieved successfully!",
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("post.get.success", null, LocaleContextHolder.getLocale()),
                 modelMapper.map(post, PostResponse.class));
 
     }
@@ -80,10 +94,12 @@ public class PostService {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("post is not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("post.not.found", null, LocaleContextHolder.getLocale())));
 
         if(checkOwnership(user.getId(), post.getOwner().getId()))
-            throw new DenyAccessException("Access Denied");
+            throw new
+                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
 //        Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
 //                .orElseThrow(()-> new ResourceNotFoundException("Category not found"));
@@ -94,7 +110,8 @@ public class PostService {
         post.setDescription(updatePostRequest.getDescription());
         post.setContent(updatePostRequest.getContent());
         Post savedPost = postRepository.save(post);
-        return new MessageResponse(HttpStatus.OK.toString(), "Post is updated successfully!",
+        return new MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("post.update.success", null, LocaleContextHolder.getLocale()),
                 modelMapper.map(savedPost, PostResponse.class));
     }
 
@@ -104,19 +121,25 @@ public class PostService {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(()-> new ResourceNotFoundException("Post is not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("post.not.found", null, LocaleContextHolder.getLocale())));
 
         if(checkOwnership(user.getId(), post.getOwner().getId()))
-            throw new DenyAccessException("Access Denied");
+            throw new
+                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
         postRepository.delete(post);
-        return new MessageResponse(HttpStatus.OK.toString(), "Post is deleted successfully", null);
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("post.delete.success", null, LocaleContextHolder.getLocale()),
+                null);
     }
 
     public MessageResponse getPostsByOwner(Long ownerId) {
         logger.info("Get posts by owner for id {}", ownerId);
         List<Post> posts = postRepository.findByOwnerId(ownerId);
-        return new MessageResponse(HttpStatus.OK.toString(), "Posts are retrieved successfully!",
+        return new MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("post.getAll.success", null, LocaleContextHolder.getLocale()),
                 posts.stream()
                 .map(post -> modelMapper.map(post, PostResponse.class))
                 .collect(Collectors.toList()));
@@ -128,7 +151,8 @@ public class PostService {
         Owner owner = ownerService.getUserById(user.getProfileId());
 
         List<Post> posts = postRepository.findByOwnerId(owner.getId());
-        return new MessageResponse(HttpStatus.OK.toString(), "Posts are retrieved successfully!",
+        return new MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("post.getAll.success", null, LocaleContextHolder.getLocale()),
                 posts.stream()
                 .map(post -> modelMapper.map(post, PostResponse.class))
                 .collect(Collectors.toList()));
@@ -137,10 +161,12 @@ public class PostService {
     public MessageResponse getPostsByOfferingId(Long offeringId) {
         logger.info("Get posts by product id {}", offeringId);
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new ResourceNotFoundException("Offering not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
 
         List<Post> posts = postRepository.findByOfferingId(offering.getId());
-        return new MessageResponse(HttpStatus.OK.toString(), "Posts are retieved successfully!",
+        return new MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("post.getAll.success", null, LocaleContextHolder.getLocale()),
                 posts.stream()
                 .map(post -> modelMapper.map(post, PostResponse.class))
                 .collect(Collectors.toList()));

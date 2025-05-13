@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +39,8 @@ public class OfferingService {
 
     private final CategoryRepository categoryRepository;
 
+    private final MessageSource messageSource;
+
     private static final Logger logger = LoggerFactory.getLogger(OfferingService.class);
 
     @Transactional
@@ -49,18 +53,26 @@ public class OfferingService {
         offering.setOwner(owner);
 
         Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
-                .orElseThrow(()-> new ResourceNotFoundException("Category not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(
+                                messageSource.getMessage("category.not.found", null, LocaleContextHolder.getLocale())));
 
         offering.setCategory(category);
         Offering savedOffering = offeringRepository.save(offering);
-        return new MessageResponse(HttpStatus.CREATED.toString(), "Offering is created succesfully!", modelMapper.map(savedOffering, OfferingResponse.class));
+        return new MessageResponse(
+                HttpStatus.CREATED.toString(),
+                messageSource.getMessage("offering.create.success", null, LocaleContextHolder.getLocale()),
+                modelMapper.map(savedOffering, OfferingResponse.class));
 //        return modelMapper.map(savedOffering, OfferingResponse.class);
     }
 
     public MessageResponse getOfferings()
     {
         List<Offering> offerings = offeringRepository.findAll();
-        return new MessageResponse(HttpStatus.CREATED.toString(), "Offerings are retrieved successfully!", offerings.stream()
+        return new MessageResponse(
+                HttpStatus.CREATED.toString(),
+                messageSource.getMessage("offering.getAll.success", null, LocaleContextHolder.getLocale()),
+                offerings.stream()
                 .map(offering -> modelMapper.map(offering, OfferingResponse.class))
                 .collect(Collectors.toList()));
     }
@@ -68,9 +80,12 @@ public class OfferingService {
     public MessageResponse getOffering(Long offeringId) {
         logger.info("Get offering for id {}", offeringId);
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new ResourceNotFoundException("Offering is not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
 
-        return new MessageResponse(HttpStatus.OK.toString(), "Offering is retrieved successfully", modelMapper.map(offering, OfferingResponse.class));
+        return new MessageResponse
+                (HttpStatus.OK.toString(),
+                        messageSource.getMessage("offering.get.success", null, LocaleContextHolder.getLocale()), modelMapper.map(offering, OfferingResponse.class));
 
     }
 
@@ -80,17 +95,23 @@ public class OfferingService {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new ResourceNotFoundException("Offering is not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
 
         if (checkOwnership(user.getId(), offering.getOwner().getId()))
-            throw new DenyAccessException("Access Denied");
+            throw new
+                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
         Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
-                .orElseThrow(()-> new ResourceNotFoundException("Category not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("category.not.found", null, LocaleContextHolder.getLocale())));
 
         modelMapper.map(offeringRequest, offering);
         Offering savedOffering = offeringRepository.save(offering);
-        return new MessageResponse(HttpStatus.OK.toString(), "Offering is updated successfully!", modelMapper.map(savedOffering, OfferingResponse.class));
+        return new
+                MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("offering.update.success", null, LocaleContextHolder.getLocale()),
+                modelMapper.map(savedOffering, OfferingResponse.class));
     }
 
     @Transactional
@@ -99,19 +120,28 @@ public class OfferingService {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new ResourceNotFoundException("Offering is not found"));
+                .orElseThrow(()-> new
+                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
 
         if (checkOwnership(user.getId(), offering.getOwner().getId()))
-            throw new DenyAccessException("Access Denied");
+            throw new
+                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
         offeringRepository.delete(offering);
-        return new MessageResponse(HttpStatus.OK.toString(), "Offering is deleted successfully", null);
+        return new
+                MessageResponse(
+                        HttpStatus.OK.toString(),
+                        messageSource.getMessage("offering.delete.success", null, LocaleContextHolder.getLocale()),
+                   null);
     }
 
     public MessageResponse getOfferingsByOwner(Long ownerId) {
         logger.info("Get offering by owner for id {}", ownerId);
         List<Offering> offerings = offeringRepository.findByOwnerId(ownerId);
-        return new MessageResponse(HttpStatus.OK.toString(), "Offerings are retrieved successfully!", offerings.stream()
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("offering.getAll.success", null, LocaleContextHolder.getLocale()),
+                offerings.stream()
                 .map(offering -> modelMapper.map(offering, OfferingResponse.class))
                 .collect(Collectors.toList()));
     }
@@ -122,7 +152,10 @@ public class OfferingService {
         Owner owner = ownerService.getUserById(user.getProfileId());
 
         List<Offering> offerings = offeringRepository.findByOwnerId(owner.getId());
-        return new MessageResponse(HttpStatus.OK.toString(), "Offerings are retrieved successfully!", offerings.stream()
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("offering.getAll.success", null, LocaleContextHolder.getLocale()),
+                offerings.stream()
                 .map(offering -> modelMapper.map(offering, OfferingResponse.class))
                 .collect(Collectors.toList()));
     }

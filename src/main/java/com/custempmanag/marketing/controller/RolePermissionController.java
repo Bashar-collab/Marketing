@@ -43,4 +43,16 @@ public class RolePermissionController {
         MessageResponse messageResponse = rolePermissionService.getPermissionsWithThisRole(roleId);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
+
+    @PostMapping("/permissions/{permissionId}/roles/{roleId}")
+    public ResponseEntity<MessageResponse> assignRoleToPermission(@PathVariable Long roleId, @PathVariable Long permissionId) {
+        MessageResponse messageResponse = rolePermissionService.assignPermissionToRole(roleId, permissionId);
+        return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
+
+    @DeleteMapping("/permissions/{permissionId}/roles/{roleId}")
+    public ResponseEntity<MessageResponse> deleteRolePermission(@PathVariable Long roleId, @PathVariable Long permissionId) {
+        MessageResponse messageResponse = rolePermissionService.removePermissionFromRole(roleId, permissionId);
+        return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
 }

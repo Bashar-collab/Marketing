@@ -2,6 +2,9 @@ package com.custempmanag.marketing.exception;
 
 import com.custempmanag.marketing.response.MessageResponse;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -21,13 +24,20 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 class GlobalExceptionHandler {
 
+    @Autowired
+    private final MessageSource messageSource;
+
+    GlobalExceptionHandler(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         Map<String, String> errors = new HashMap<>();
         errors.put("message", "Database constraint violation: " + ex.getRootCause().getMessage());
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(),
-                "Error occurred, please try again", // errors.toString()
+                messageSource.getMessage("internal.error", null, LocaleContextHolder.getLocale()), // errors.toString()
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -42,7 +52,7 @@ class GlobalExceptionHandler {
 
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(), // status
-                "Validation failed", // message
+                messageSource.getMessage("validation.failed", null, LocaleContextHolder.getLocale()), // errors.toString(), // message
                 errors // data
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -91,7 +101,7 @@ class GlobalExceptionHandler {
 
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(),
-                "Error occurred, please try again",
+                messageSource.getMessage("internal.error", null, LocaleContextHolder.getLocale()), // errors.toString()
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -104,7 +114,7 @@ class GlobalExceptionHandler {
         errors.put(ex.getName(), "Invalid value: " + ex.getValue() + ". Expected type: " + ex.getRequiredType().getSimpleName());
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(),
-                "Error occurred, please try again",
+                messageSource.getMessage("internal.error", null, LocaleContextHolder.getLocale()), // errors.toString()
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -117,7 +127,7 @@ class GlobalExceptionHandler {
         errors.put(ex.getParameterName(), "Parameter is missing");
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(),
-                "Error occurred, please try again",
+                messageSource.getMessage("internal.error", null, LocaleContextHolder.getLocale()), // errors.toString()
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -130,7 +140,7 @@ class GlobalExceptionHandler {
         errors.put("message", "Invalid JSON: " + ex.getRootCause().getMessage());
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(),
-                "Error occurred, please try again",
+                messageSource.getMessage("internal.error", null, LocaleContextHolder.getLocale()), // errors.toString()
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

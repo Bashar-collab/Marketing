@@ -37,7 +37,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('OWNER')")
+@PreAuthorize("hasRole('OWNER') || hasRole('CUSTOMER')")
 public class OfferingController {
     private final OfferingService offeringService;
 

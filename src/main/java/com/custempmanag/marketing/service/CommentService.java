@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -41,6 +43,8 @@ public class CommentService {
 
     private final UserService userService;
 
+    private final MessageSource messageSource;
+
     @Transactional
     public MessageResponse addCommentToPost(Long postId,
                                             CommentRequest commentRequest,
@@ -48,7 +52,8 @@ public class CommentService {
 
         User user = userService.validateAndGetUserById(currentUser.getId());
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(messageSource.getMessage("post.not.found", null, LocaleContextHolder.getLocale())));
 
         Comment comment = modelMapper.map(commentRequest, Comment.class); // It is not worth it though, LOL
         comment.setUser(user);
@@ -57,7 +62,10 @@ public class CommentService {
         comment.setCommentDate(LocalDate.now());
         commentRepository.save(comment);
 
-        return new MessageResponse(HttpStatus.CREATED.toString(), "Comment added successfully", null);
+        return new
+                MessageResponse(HttpStatus.CREATED.toString(),
+                messageSource.getMessage("comment.add.success", null, LocaleContextHolder.getLocale()),
+                null);
 
     }
 
@@ -68,7 +76,8 @@ public class CommentService {
 
         User user = userService.validateAndGetUserById(currentUser.getId());
         Comment parentComment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(messageSource.getMessage("comment.not.found", null, LocaleContextHolder.getLocale())));
         Comment reply = new Comment();
         reply.setUser(user);
         reply.setParentComment(parentComment);
@@ -77,7 +86,10 @@ public class CommentService {
         reply.setPost(parentComment.getPost());
 //        parentComment.setReplies();
         commentRepository.save(reply);
-        return new MessageResponse(HttpStatus.CREATED.toString(), "Reply added successfully", null);
+        return new
+                MessageResponse(HttpStatus.CREATED.toString(),
+                messageSource.getMessage("reply.add.success", null, LocaleContextHolder.getLocale()),
+                null);
 
     }
 
@@ -91,14 +103,19 @@ public class CommentService {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(messageSource.getMessage("comment.not.found", null, LocaleContextHolder.getLocale())));
 
         if(comment.getUser().getId() != user.getId())
-            throw new DenyAccessException("Access Denied");
+            throw new
+                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
         modelMapper.map(commentRequest, comment);
         commentRepository.save(comment);
-        return new MessageResponse(HttpStatus.OK.toString(), "Comment updated successfully", null);
+        return new
+                MessageResponse(HttpStatus.OK.toString(),
+                "Comment updated successfully",
+                null);
     }
 
     @Transactional
@@ -107,20 +124,31 @@ public class CommentService {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(messageSource.getMessage("comment.not.found", null, LocaleContextHolder.getLocale())));
 
         if(comment.getUser().getId() != user.getId())
-            throw new DenyAccessException("Access Denied");
+            throw new
+                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
         commentRepository.delete(comment);
-        return new MessageResponse(HttpStatus.OK.toString(), "Comment deleted successfully", null);
+        return new
+                MessageResponse(HttpStatus.OK.toString(),
+                messageSource.getMessage("comment.delete.success", null, LocaleContextHolder.getLocale()),
+                null);
     }
 
     public MessageResponse getCommentsByPost(Long postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(
+                                messageSource.getMessage("post.not.found", null, LocaleContextHolder.getLocale())));
+
+
         List<Comment> comments = commentRepository.findByPostId(post.getId());
-        return new MessageResponse(HttpStatus.OK.toString(), "Comments are retrieved successfully!", comments.stream()
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("comment.getAll.success", null, LocaleContextHolder.getLocale()), comments.stream()
                 .filter(comment -> comment.getParentComment() == null) // Only top-level comments
                 .map(this::mapToCommentResponse)
                 .collect(Collectors.toList()));
@@ -128,11 +156,15 @@ public class CommentService {
 
     public MessageResponse getCommentDetails(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(
+                                    messageSource.getMessage("comment.not.found", null, LocaleContextHolder.getLocale())));
 
 //        return new MessageResponse(HttpStatus.OK.toString(), "Comment details are retrieved successfully!",
 //                modelMapper.map(comment, CommentResponse.class));
-        return new MessageResponse(HttpStatus.OK.toString(), "Comment details are retrieved successfully!",
+        return new MessageResponse(
+                HttpStatus.OK.toString(),
+                messageSource.getMessage("comment.getDetails.success", null, LocaleContextHolder.getLocale()),
                 mapToCommentResponse(comment));
 
     }

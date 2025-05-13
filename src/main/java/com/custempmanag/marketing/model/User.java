@@ -18,12 +18,14 @@ public class User {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
 
+    @Column(unique = true, nullable = false)
     private String username;
 
     private String email;
 
     private String password;
 
+    @Column(unique = true, nullable = false)
     private String phoneNumber;
 
     private String address;
@@ -45,7 +47,7 @@ public class User {
     private String profilePicture;
 
     @Column(name = "preferred_language")
-    private String preferredLanguage;
+    private String preferredLanguage = "en";
 
     @Column(name = "fcm_token", columnDefinition = "TEXT")
     private String fcmToken;

@@ -57,13 +57,19 @@ public class RatingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(messageResponse);
     }
 
+    @GetMapping("/offerings/{offeringId}/ratings")
+    public ResponseEntity<MessageResponse> getOfferingRatings(@PathVariable Long offeringId){
+        MessageResponse messageResponse = ratingService.getOfferingRatings(offeringId);
+        return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
+
     @GetMapping("/offerings/{offeringId}/ratings/average")
     public ResponseEntity<MessageResponse> getAverageOfferingRating(@PathVariable Long offeringId) {
         MessageResponse messageResponse = ratingService.getAverageOfferingRating(offeringId);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
-    @GetMapping("/offerings/{offeringId}/ratings")
+    @GetMapping("/users/offerings/{offeringId}/ratings")
     public ResponseEntity<MessageResponse> getOfferingRatingByUser(@PathVariable Long offeringId,
                                                             @AuthenticationPrincipal UserPrinciple currentUser) {
         MessageResponse messageResponse = ratingService.getOfferingRatingByUser(offeringId, currentUser);
@@ -78,13 +84,19 @@ public class RatingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(messageResponse);
     }
 
+    @GetMapping("/posts/{postId}/ratings")
+    public ResponseEntity<MessageResponse> getPostRatings(@PathVariable Long postId){
+        MessageResponse messageResponse = ratingService.getPostRatings(postId);
+        return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
+
     @GetMapping("/posts/{postId}/ratings/average")
     public ResponseEntity<MessageResponse> getAveragePostRating(@PathVariable Long postId) {
         MessageResponse messageResponse = ratingService.getAveragePostRating(postId);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
-    @GetMapping("/posts/{postId}/ratings")
+    @GetMapping("/users/posts/{postId}/ratings")
     public ResponseEntity<MessageResponse> getPostRatingByUser(@PathVariable Long postId,
                                                                    @AuthenticationPrincipal UserPrinciple currentUser) {
         MessageResponse messageResponse = ratingService.getPostRatingByUser(postId, currentUser);
@@ -99,13 +111,19 @@ public class RatingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(messageResponse);
     }
 
+    @GetMapping("/comments/{commentId}/ratings")
+    public ResponseEntity<MessageResponse> getCommentRatings(@PathVariable Long commentId){
+        MessageResponse messageResponse = ratingService.getCommentRatings(commentId);
+        return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
+
     @GetMapping("/comments/{commentId}/ratings/average")
     public ResponseEntity<MessageResponse> getAverageCommentRating(@PathVariable Long commentId) {
         MessageResponse messageResponse = ratingService.getAverageCommentRating(commentId);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
-    @GetMapping("/comments/{commentId}/ratings")
+    @GetMapping("/users/comments/{commentId}/ratings")
     public ResponseEntity<MessageResponse> getCommentRatingByUser(@PathVariable Long commentId,
                                                                    @AuthenticationPrincipal UserPrinciple currentUser) {
         MessageResponse messageResponse = ratingService.getCommentRatingByUser(commentId, currentUser);
