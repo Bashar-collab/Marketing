@@ -1,12 +1,16 @@
 package com.custempmanag.marketing.controller;
 
 import com.custempmanag.marketing.config.UserPrinciple;
+import com.custempmanag.marketing.model.RefreshToken;
 import com.custempmanag.marketing.model.User;
 import com.custempmanag.marketing.request.ChangePasswordRequest;
 import com.custempmanag.marketing.request.LoginRequest;
+import com.custempmanag.marketing.request.RefreshTokenRequest;
 import com.custempmanag.marketing.request.RegisterRequest;
 import com.custempmanag.marketing.response.MessageResponse;
+import com.custempmanag.marketing.response.RefreshTokenResponse;
 import com.custempmanag.marketing.service.AuthService;
+import com.custempmanag.marketing.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,14 +19,19 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = "*") // Allow all origins for all methods in this controller
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, RefreshTokenService refreshTokenService) {
         this.authService = authService;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @PostMapping("/register")
@@ -37,19 +46,27 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
+//    @PreAuthorize("isAuthenticated()")
     @PostMapping("/logout")
-    public ResponseEntity<MessageResponse> logout(@RequestHeader("Authorization") String authHeader) {
-        MessageResponse messageResponse = authService.logout(authHeader);
+    public ResponseEntity<MessageResponse> logout(@RequestHeader("Authorization") String authHeader,
+                                                  @AuthenticationPrincipal UserPrinciple userPrinciple) {
+        MessageResponse messageResponse = authService.logout(authHeader, userPrinciple.getId());
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
-    @PreAuthorize("isAuthenticated()")
+//    @PreAuthorize("isAuthenticated()")
     @PostMapping("/change-password")
     public ResponseEntity<MessageResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request,
                                             @AuthenticationPrincipal UserPrinciple currentUser) {
         // Business logic (e.g., verify current password, update password)
         MessageResponse messageResponse = authService.changePassword(request, currentUser);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        RefreshTokenResponse response = refreshTokenService.getRefreshToken(refreshTokenRequest);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
     /*
         NEED TO DESIGN API'S FOR THIS IN THE FUTURE

@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequest {
-    @NotBlank
+    @NotBlank(message = "{username.notblank}")
     private String username;
 
-    @NotBlank
+    @NotBlank(message = "{password.notblank}")
     private String password;
 
     @JsonAlias("fcm_token")

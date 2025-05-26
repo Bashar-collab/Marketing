@@ -15,6 +15,7 @@ import com.custempmanag.marketing.response.UserResponse;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -75,6 +76,7 @@ public class RoleService {
         return new MessageResponse(HttpStatus.OK.toString(), "Role found", role);
     }
 
+    @CacheEvict(value = "userDetailsCache", key = "#user.username")
     @Transactional
     public MessageResponse assignUserToRole(Long roleId, Long userId) {
         Role role = roleRepository.findById(roleId)

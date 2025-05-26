@@ -4,6 +4,7 @@ import com.custempmanag.marketing.model.User;
 import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +22,7 @@ public class UserPrinciple implements UserDetails {
     private final Long id;
     private final String username;
     private final String password;
+    private final Long profileId;
     private final Collection<? extends GrantedAuthority> authorities;
 
     public static UserPrinciple create(User user) {
@@ -31,6 +33,7 @@ public class UserPrinciple implements UserDetails {
                 user.getId(),
                 user.getUsername(),
                 user.getPassword(),
+                user.getProfileId(),
                 authorities // Or fetch roles
         );
     }
@@ -49,5 +52,13 @@ public class UserPrinciple implements UserDetails {
     public String getUsername() {
         return username;
     }
+
+
+    public boolean isAdmin() {
+        return getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role -> role.equals("ROLE_ADMIN") || role.equals("ROLE_SUPER_ADMIN"));
+    }
+
 
 }

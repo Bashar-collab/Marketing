@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +48,8 @@ class GlobalExceptionHandler {
     public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
         List<String> errors = ex.getBindingResult().getAllErrors()
                 .stream()
-                .map(error -> error.getDefaultMessage())
-                .collect(Collectors.toList());
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .toList();
 
         MessageResponse response = new MessageResponse(
                 HttpStatus.BAD_REQUEST.toString(), // status
@@ -87,6 +88,17 @@ class GlobalExceptionHandler {
                 null
         );
         return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<?> handleIOException(IOException ex) {
+        MessageResponse response = new MessageResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.toString(),
+                messageSource.getMessage("internal.error", null, LocaleContextHolder.getLocale()),
+                null
+                // NEED TO MODIFY THIS TO MAKE RETURN FAILED TO UPLOAD PHOTO MESSAGE NOT INTERNAL SERVER ERROR MESSAGE
+        );
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     // Handle @RequestParam, @PathVariable, and @Validated service layer validation

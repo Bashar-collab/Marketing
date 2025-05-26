@@ -2,6 +2,7 @@ package com.custempmanag.marketing.repository;
 
 import com.custempmanag.marketing.model.Rating;
 import com.custempmanag.marketing.model.User;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -24,5 +25,12 @@ public interface RatingRepository extends CrudRepository<Rating, Long> {
     List<Rating> findRatingByRateableId(Long offeringId);
 
     List<Rating> findRatingByRateableIdAndRateableType(Long entityId, String rateableType);
+
+    @Modifying
+    @Query("DELETE FROM Rating r WHERE r.rateableId = :id AND r.rateableType = :type")
+    void deleteByRateableIdAndRateableType(@Param("id") Long id, @Param("type") String type);
+
+    @Query("SELECT COALESCE(AVG(r.ratingValue), 0.0) FROM Rating r WHERE r.rateableId = :id AND r.rateableType = :type")
+    Double findAverageByRateableIdAndType(@Param("id") Long id, @Param("type") String type);
 
 }

@@ -1,15 +1,14 @@
 package com.custempmanag.marketing.service;
 
 import com.custempmanag.marketing.config.UserPrinciple;
-import com.custempmanag.marketing.exception.DenyAccessException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
-import com.custempmanag.marketing.model.Category;
-import com.custempmanag.marketing.model.Offering;
-import com.custempmanag.marketing.model.Owner;
-import com.custempmanag.marketing.model.User;
+import com.custempmanag.marketing.model.*;
 import com.custempmanag.marketing.repository.CategoryRepository;
+import com.custempmanag.marketing.repository.ImageRepository;
 import com.custempmanag.marketing.repository.OfferingRepository;
+import com.custempmanag.marketing.repository.RatingRepository;
 import com.custempmanag.marketing.request.OfferingRequest;
+import com.custempmanag.marketing.response.ImageResponse;
 import com.custempmanag.marketing.response.MessageResponse;
 import com.custempmanag.marketing.response.OfferingResponse;
 import jakarta.transaction.Transactional;
@@ -17,13 +16,20 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -41,127 +47,181 @@ public class OfferingService {
 
     private final MessageSource messageSource;
 
-    private static final Logger logger = LoggerFactory.getLogger(OfferingService.class);
+    private final ImageService imageService;
 
+    private static final Logger logger = LoggerFactory.getLogger(OfferingService.class);
+    private final ImageRepository imageRepository;
+    private final RatingRepository ratingRepository;
+
+
+    @CacheEvict(value = {"offerings", "ownerOfferings", "usersOfferings"}, allEntries = true)
     @Transactional
-    public MessageResponse createOffering(OfferingRequest offeringRequest, UserPrinciple currentUser) {
+    public MessageResponse createOffering(OfferingRequest offeringRequest,
+                                          UserPrinciple currentUser,
+                                          List<MultipartFile> photos) {
         logger.info("Creating offering for id {}", currentUser.getId());
-        User user = userService.validateAndGetUserById(currentUser.getId());
-        logger.info("User id {}", user.getId());
-        Owner owner = ownerService.getUserById(user.getProfileId());
+
+        Owner owner = ownerService.getUserById(currentUser.getProfileId());
+
+        Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(getMessage("category.not.found")));
+
+
         Offering offering = modelMapper.map(offeringRequest, Offering.class);
         offering.setOwner(owner);
 
-        Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
-                .orElseThrow(()-> new
-                        ResourceNotFoundException(
-                                messageSource.getMessage("category.not.found", null, LocaleContextHolder.getLocale())));
-
         offering.setCategory(category);
         Offering savedOffering = offeringRepository.save(offering);
-        return new MessageResponse(
-                HttpStatus.CREATED.toString(),
-                messageSource.getMessage("offering.create.success", null, LocaleContextHolder.getLocale()),
+
+        if (photos != null && !photos.isEmpty())
+        {
+            for (MultipartFile photo : photos)
+                imageService.savePhoto(savedOffering, photo, savedOffering.getClass().getSimpleName().toLowerCase());
+        }
+
+        return buildSuccessResponse("offering.create.success",
                 modelMapper.map(savedOffering, OfferingResponse.class));
-//        return modelMapper.map(savedOffering, OfferingResponse.class);
     }
 
-    public MessageResponse getOfferings()
-    {
-        List<Offering> offerings = offeringRepository.findAll();
-        return new MessageResponse(
-                HttpStatus.CREATED.toString(),
-                messageSource.getMessage("offering.getAll.success", null, LocaleContextHolder.getLocale()),
-                offerings.stream()
-                .map(offering -> modelMapper.map(offering, OfferingResponse.class))
-                .collect(Collectors.toList()));
+    @Cacheable(value = "offerings")
+    public MessageResponse getOfferings() {
+
+        List<OfferingResponse> offerings = offeringRepository.getAllOfferings();
+
+        if (offerings == null || offerings.isEmpty())
+            return buildSuccessResponse("offering.getAll.empty", Collections.emptyList());
+
+        List<OfferingResponse> offeringResponses = getImages(offerings);
+
+        return buildSuccessResponse("offering.getAll.success", offeringResponses);
     }
 
+    @Cacheable(value = "offering", key = "#offeringId")
     public MessageResponse getOffering(Long offeringId) {
         logger.info("Get offering for id {}", offeringId);
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new
-                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(getMessage("offering.not.found")));
 
-        return new MessageResponse
-                (HttpStatus.OK.toString(),
-                        messageSource.getMessage("offering.get.success", null, LocaleContextHolder.getLocale()), modelMapper.map(offering, OfferingResponse.class));
+        OfferingResponse response = modelMapper.map(offering, OfferingResponse.class);
 
+        Double avgRating = ratingRepository.findAverageByRateableIdAndType(offeringId, "Offering");
+        response.setRatingValue(avgRating);
+
+        List<Image> images = imageRepository.findPathByImageableIdAndImageableType(offeringId, "offering");
+        List<ImageResponse> imageResponses = images.stream()
+                .map(img -> new ImageResponse(
+                        img.getId(),
+                        imageService.getImagePath(img)
+                ))
+                .collect(Collectors.toList());
+
+        response.setImage(imageResponses);
+
+        return buildSuccessResponse("offering.get.success", response);
     }
 
+    @CacheEvict(value = {"offerings", "offering", "ownerOfferings", "userOfferings"}, allEntries = true)
     @Transactional
-    public MessageResponse updateOffering(Long offeringId, OfferingRequest offeringRequest, UserPrinciple currentUser) {
+    public MessageResponse updateOffering(Long offeringId, OfferingRequest offeringRequest, List<MultipartFile> photos) {
         logger.info("Updating offering for id {}", offeringId);
-        User user = userService.validateAndGetUserById(currentUser.getId());
 
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new
-                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(getMessage("offering.not.found")));
 
-        if (checkOwnership(user.getId(), offering.getOwner().getId()))
-            throw new
-                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
 
         Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
-                .orElseThrow(()-> new
-                        ResourceNotFoundException(messageSource.getMessage("category.not.found", null, LocaleContextHolder.getLocale())));
+                .orElseThrow(() -> new
+                        ResourceNotFoundException(getMessage("category.not.found")));
 
         modelMapper.map(offeringRequest, offering);
         Offering savedOffering = offeringRepository.save(offering);
-        return new
-                MessageResponse(HttpStatus.OK.toString(),
-                messageSource.getMessage("offering.update.success", null, LocaleContextHolder.getLocale()),
+
+        if (photos != null && !photos.isEmpty())
+        {
+            for (MultipartFile photo : photos)
+                imageService.savePhoto(savedOffering, photo, savedOffering.getClass().getSimpleName().toLowerCase());
+        }
+
+        return buildSuccessResponse("offering.update.success",
                 modelMapper.map(savedOffering, OfferingResponse.class));
     }
 
+    @Caching(evict = {
+            @CacheEvict(value = "offering", key = "#offeringId"),
+            @CacheEvict(value = "offerings", allEntries = true),
+            @CacheEvict(value = "ownerOfferings", allEntries = true),
+            @CacheEvict(value = "usersOfferings", allEntries = true)
+    })
     @Transactional
-    public MessageResponse deleteOffering(Long offeringId, UserPrinciple currentUser) {
+    public MessageResponse deleteOffering(Long offeringId) {
         logger.info("Deleting offering for id {}", offeringId);
-        User user = userService.validateAndGetUserById(currentUser.getId());
 
-        Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(()-> new
-                        ResourceNotFoundException(messageSource.getMessage("offering.not.found", null, LocaleContextHolder.getLocale())));
+        imageRepository.deleteByImageableIdAndImageableType(offeringId, "offering");
+        ratingRepository.deleteByRateableIdAndRateableType(offeringId, "Offering");
 
-        if (checkOwnership(user.getId(), offering.getOwner().getId()))
-            throw new
-                    DenyAccessException(messageSource.getMessage("forbidden", null, LocaleContextHolder.getLocale()));
-
-        offeringRepository.delete(offering);
-        return new
-                MessageResponse(
-                        HttpStatus.OK.toString(),
-                        messageSource.getMessage("offering.delete.success", null, LocaleContextHolder.getLocale()),
-                   null);
+        offeringRepository.deleteById(offeringId);
+        return buildSuccessResponse("offering.delete.success", null);
     }
 
+    @Cacheable(value = "ownerOfferings", key = "#ownerId")
     public MessageResponse getOfferingsByOwner(Long ownerId) {
-        logger.info("Get offering by owner for id {}", ownerId);
-        List<Offering> offerings = offeringRepository.findByOwnerId(ownerId);
-        return new MessageResponse(
-                HttpStatus.OK.toString(),
-                messageSource.getMessage("offering.getAll.success", null, LocaleContextHolder.getLocale()),
-                offerings.stream()
-                .map(offering -> modelMapper.map(offering, OfferingResponse.class))
-                .collect(Collectors.toList()));
+
+        List<OfferingResponse> offerings = offeringRepository.findByOwnerId(ownerId);
+
+        if (offerings.isEmpty())
+            return buildSuccessResponse("offering.getAll.empty", Collections.emptyList());
+
+        List<OfferingResponse> offeringResponses = getImages(offerings);
+
+        return buildSuccessResponse("offering.getAll.success", offeringResponses);
     }
 
+    @Cacheable(value = "userOfferings", key = "#currentUser.id")
     public MessageResponse getOfferingsByUser(UserPrinciple currentUser) {
-        User user = userService.validateAndGetUserById(currentUser.getId());
 
-        Owner owner = ownerService.getUserById(user.getProfileId());
+        Owner owner = ownerService.getUserById(currentUser.getProfileId());
 
-        List<Offering> offerings = offeringRepository.findByOwnerId(owner.getId());
-        return new MessageResponse(
-                HttpStatus.OK.toString(),
-                messageSource.getMessage("offering.getAll.success", null, LocaleContextHolder.getLocale()),
-                offerings.stream()
-                .map(offering -> modelMapper.map(offering, OfferingResponse.class))
-                .collect(Collectors.toList()));
+        List<OfferingResponse> offerings = offeringRepository.findByOwnerId(owner.getId());
+
+        List<OfferingResponse> offeringResponses = getImages(offerings);
+
+        return buildSuccessResponse("offering.getAll.success", offeringResponses);
     }
 
+    private List<OfferingResponse> getImages(List<OfferingResponse> offerings) {
+        List<Long> offeringIds = offerings.stream()
+                .map(OfferingResponse::getId)
+                .toList();
 
-    private boolean checkOwnership(Long userId, Long ownerId) {
-        return !userId.equals(ownerId);
+        List<Image> allImages = imageRepository.findByImageableIdInAndImageableType(offeringIds, "offering");
+
+        Map<Long, List<ImageResponse>> imagesGroupedByOfferingId = allImages.stream()
+                .collect(Collectors.groupingBy(
+                        Image::getImageableId,
+                        Collectors.mapping(
+                                img -> new ImageResponse(img.getId(), imageService.getImagePath(img)),
+                                Collectors.toList()
+                        )
+                ));
+
+        return offerings.stream()
+                .map(offering -> {
+                    OfferingResponse response = modelMapper.map(offering, OfferingResponse.class);
+                    List<ImageResponse> imageResponses = imagesGroupedByOfferingId.getOrDefault(offering.getId(), Collections.emptyList());
+                    response.setImage(imageResponses);
+                    return response;
+                })
+                .toList();
+    }
+
+    private MessageResponse buildSuccessResponse(String messageCode, Object data) {
+        return new MessageResponse(HttpStatus.OK.toString(), getMessage(messageCode), data);
+    }
+
+    private String getMessage(String code) {
+        return messageSource.getMessage(code, null, LocaleContextHolder.getLocale());
     }
 }

@@ -6,18 +6,23 @@ import com.custempmanag.marketing.config.UserPrinciple;
 import com.custempmanag.marketing.exception.CustomException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
 import com.custempmanag.marketing.model.Permission;
+import com.custempmanag.marketing.model.RefreshToken;
 import com.custempmanag.marketing.model.Role;
 import com.custempmanag.marketing.model.User;
 import com.custempmanag.marketing.repository.RoleRepository;
 import com.custempmanag.marketing.repository.UserRepository;
 import com.custempmanag.marketing.request.ChangePasswordRequest;
+import com.custempmanag.marketing.request.RefreshTokenRequest;
 import com.custempmanag.marketing.request.RegisterRequest;
 import com.custempmanag.marketing.response.LoginResponse;
 import com.custempmanag.marketing.response.MessageResponse;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -38,6 +43,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -45,21 +51,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final TokenBlacklistService tokenBlacklistService;
+    private final RefreshTokenService refreshTokenService;
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
     private RoleRepository roleRepository;
 
-
-    public AuthService(UserRepository userRepository, JwtConfig jwtConfig,
-                       PasswordEncoder passwordEncoder,@Lazy AuthenticationManager authenticationManager,
-                       TokenBlacklistService tokenBlacklistService) {
-        this.userRepository = userRepository;
-        this.jwtConfig = jwtConfig;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.tokenBlacklistService = tokenBlacklistService;
-    }
 //    @Autowired
 //    private FCMService fcmService;
 
@@ -73,6 +70,8 @@ public class AuthService {
 
     @Autowired
     private MessageSource messageSource;
+    @Autowired
+    private UserService userService;
 
     @Transactional
     public MessageResponse registerUser(RegisterRequest registerRequest)
@@ -118,35 +117,37 @@ public class AuthService {
         return new MessageResponse(HttpStatus.CREATED.toString(), localizedMessage, user.getUsername());
     }
 
+    @Transactional
     public MessageResponse authenticate(String username, String password) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(messageSource.getMessage("user.not.found", null, LocaleContextHolder.getLocale()))); // I SHOULD RETURN TO HERE
+
+        User user = userService.findByUsername(username);
         // Debug point
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new CustomException(
                     messageSource.getMessage("auth.password.invalid", null, LocaleContextHolder.getLocale())); // Debug point
         }
-        // THE ERROR IS IN THE LINE BELOW, DON'T FORGET TO DO IT TOMORROW
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-//        Set<Permission> permissions = user.getRole().getPermissions();
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(username);
 
-//        return new MessageResponse(HttpStatus.OK.toString(), "User logged in successfully!",
-//                jwtConfig.generateToken(username, keyPair));
+
         String localizedMessage = messageSource.getMessage("auth.login.success", null, LocaleContextHolder.getLocale());
         return new MessageResponse(HttpStatus.OK.toString(), localizedMessage,
                     new LoginResponse(jwtConfig.generateToken(username, keyPair),
+                            refreshToken.getToken(),
                             user.getRole().getName(), user.getRole().getPermissions()
-                            .stream().map(permission -> permission.getCode())
+                            .stream().map(Permission::getCode)
                             .collect(Collectors.toSet())));
     }
 
-    public MessageResponse logout(String authHeader) {
-        String token = extractToken(authHeader);
+    @Transactional
+    public MessageResponse logout(String authHeader, Long userId) {
+        String token = jwtConfig.extractToken(authHeader);
 
         // Calculate remaining time until token expiration
         long remainingTime = jwtConfig.getRemainingTime(token, keyPair);
+
+        refreshTokenService.revokeToken(userId);
 
         // Add token to blacklist with TTL equal to remaining validity
         tokenBlacklistService.blacklistToken(token, remainingTime);
@@ -159,17 +160,11 @@ public class AuthService {
                 null);
     }
 
-    private String extractToken(String authHeader) {
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
-        }
-        throw new IllegalArgumentException("Invalid Authorization header");
-    }
-
+    @CacheEvict(value = "userDetailsCache", key = "#currentUser.username")
     public MessageResponse changePassword(ChangePasswordRequest changePasswordRequest, UserPrinciple currentUser) {
-        User user = userRepository.findByUsername(currentUser.getUsername())
-                .orElseThrow(() -> new
-                        ResourceNotFoundException(messageSource.getMessage("user.not.found", null, LocaleContextHolder.getLocale())));
+
+        User user = userService.findByUsername(currentUser.getUsername());
+
         if(passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPassword()))
         {
             user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));

@@ -42,7 +42,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('OWNER') || hasRole('CUSTOMER')")
+@PreAuthorize("hasRole('OWNER') || hasRole('CUSTOMER') or hasPermission(null, null, 'EV')")
 public class RatingController {
 
     private static final Logger logger = LoggerFactory.getLogger(RatingController.class);
@@ -50,6 +50,7 @@ public class RatingController {
     private final RatingService ratingService;
 
     @PostMapping("/offerings/{offeringId}/ratings")
+    @PreAuthorize("hasPermission(null, 'Rating', 'A0') or hasPermission(null, 'Rating', 'A4')")
     public ResponseEntity<MessageResponse> addOfferingRating(@PathVariable Long offeringId,
                                                      @Valid @RequestBody RatingRequest ratingRequest,
                                                      @AuthenticationPrincipal UserPrinciple currentUser) {
@@ -58,18 +59,21 @@ public class RatingController {
     }
 
     @GetMapping("/offerings/{offeringId}/ratings")
+    @PreAuthorize("hasPermission(null, 'Rating', 'F0') or hasPermission(null, 'Rating', 'F1')")
     public ResponseEntity<MessageResponse> getOfferingRatings(@PathVariable Long offeringId){
         MessageResponse messageResponse = ratingService.getOfferingRatings(offeringId);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
     @GetMapping("/offerings/{offeringId}/ratings/average")
+    @PreAuthorize("hasPermission(null, 'Rating', 'F0') or hasPermission(null, 'Rating', 'F1')")
     public ResponseEntity<MessageResponse> getAverageOfferingRating(@PathVariable Long offeringId) {
         MessageResponse messageResponse = ratingService.getAverageOfferingRating(offeringId);
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
     @GetMapping("/users/offerings/{offeringId}/ratings")
+    @PreAuthorize("hasPermission(null, 'Rating', 'F0') or hasPermission(null, 'Rating', 'F1')")
     public ResponseEntity<MessageResponse> getOfferingRatingByUser(@PathVariable Long offeringId,
                                                             @AuthenticationPrincipal UserPrinciple currentUser) {
         MessageResponse messageResponse = ratingService.getOfferingRatingByUser(offeringId, currentUser);

@@ -52,17 +52,6 @@ public class JwtConfig {
     public String generateToken(String username, KeyPair keyPair) {
         Map<String, Object> claims = new HashMap<>();
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-//        KeyPair keyPair = new KeyPair;
-
-        /*
-        String role = userDetails.getAuthorities().stream()
-                .findFirst()
-                .map(GrantedAuthority::getAuthority)
-                .map(auth -> auth.replace("ROLE_", ""))
-                .orElse("USER");
-
-//        claims.put("role", role);
-         */
         return createToken(claims, userDetails.getUsername(), keyPair);
     }
 
@@ -110,5 +99,12 @@ public class JwtConfig {
     public long getRemainingTime(String token, KeyPair keyPair) {
         Date expiration = extractExpiration(token, jwtParser(keyPair));
         return expiration.getTime() - System.currentTimeMillis();
+    }
+
+    public String extractToken(String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        throw new IllegalArgumentException("Invalid Authorization header");
     }
 }

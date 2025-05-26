@@ -12,7 +12,7 @@ import java.time.Instant;
 
 @Entity
 @Data
-public class Offering {
+public class Offering implements Imageable{
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -52,4 +52,11 @@ public class Offering {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Override
+    public Long getId() {
+        return id;
+    }
+
+
 }

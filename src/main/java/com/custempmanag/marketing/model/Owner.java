@@ -14,7 +14,7 @@ public class Owner {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private long id;
+    private Long id;
 
     @Column(columnDefinition = "TEXT")
     private String bio;
@@ -28,30 +28,5 @@ public class Owner {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public double getRate() {
-        return rate;
-    }
-
-    public void setRate(double rate) {
-        this.rate = rate;
-    }
-
 
 }
