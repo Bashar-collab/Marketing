@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.nio.file.attribute.UserPrincipal;
 import java.security.KeyPair;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -120,7 +121,17 @@ public class AuthService {
     @Transactional
     public MessageResponse authenticate(String username, String password) {
 
-        User user = userService.findByUsername(username);
+//        User user = userService.findByUsername(username);
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+
+        if (optionalUser.isEmpty()) {
+            simulateDummyPasswordCheck(password);
+            throw new CustomException(
+                    messageSource.getMessage("auth.password.invalid", null, LocaleContextHolder.getLocale())); // Debug point;
+        }
+
+
+        User user = optionalUser.get();
         // Debug point
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
@@ -203,4 +214,11 @@ public class AuthService {
     }
 
      */
+
+    private void simulateDummyPasswordCheck(String password) {
+        // Dummy hash for "dummy_password" generated once with bcrypt
+        String dummyHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5eDIFz2QkZo58W0z8BW1PqNqT5H0i";
+        passwordEncoder.matches(password, dummyHash);
+    }
+
 }

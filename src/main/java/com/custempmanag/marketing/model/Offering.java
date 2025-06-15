@@ -5,10 +5,12 @@ import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Data
@@ -44,6 +46,11 @@ public class Offering implements Imageable{
     private AvailableStatus availableStatus;
 
     private String location;
+
+    @OneToMany
+    @JoinColumn(name = "rateable_id")
+    @Where(clause = "rateable_type = 'Offering'")
+    private List<Rating> ratings;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

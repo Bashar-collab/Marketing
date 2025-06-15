@@ -1,18 +1,11 @@
 package com.custempmanag.marketing.service;
 
-import com.custempmanag.marketing.config.UserPrinciple;
-import com.custempmanag.marketing.exception.ResourceNotFoundException;
-import com.custempmanag.marketing.model.*;
-import com.custempmanag.marketing.repository.CategoryRepository;
-import com.custempmanag.marketing.repository.ImageRepository;
-import com.custempmanag.marketing.repository.OfferingRepository;
-import com.custempmanag.marketing.repository.RatingRepository;
-import com.custempmanag.marketing.request.OfferingRequest;
-import com.custempmanag.marketing.response.ImageResponse;
-import com.custempmanag.marketing.response.MessageResponse;
-import com.custempmanag.marketing.response.OfferingResponse;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.custempmanag.marketing.request.OfferingFilterRequest;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,14 +14,35 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.custempmanag.marketing.config.UserPrinciple;
+import com.custempmanag.marketing.exception.ResourceNotFoundException;
+import com.custempmanag.marketing.model.Category;
+import com.custempmanag.marketing.model.CurrencyTypes;
+import com.custempmanag.marketing.model.Image;
+import com.custempmanag.marketing.model.Offering;
+import com.custempmanag.marketing.model.Owner;
+import com.custempmanag.marketing.query.OfferingSpecification;
+import com.custempmanag.marketing.repository.CategoryRepository;
+import com.custempmanag.marketing.repository.ImageRepository;
+import com.custempmanag.marketing.repository.OfferingRepository;
+import com.custempmanag.marketing.repository.RatingRepository;
+import com.custempmanag.marketing.request.OfferingRequest;
+import com.custempmanag.marketing.response.ImageResponse;
+import com.custempmanag.marketing.response.MessageResponse;
+import com.custempmanag.marketing.response.OfferingResponse;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 
 @Service
@@ -48,6 +62,9 @@ public class OfferingService {
     private final MessageSource messageSource;
 
     private final ImageService imageService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private static final Logger logger = LoggerFactory.getLogger(OfferingService.class);
     private final ImageRepository imageRepository;
@@ -85,16 +102,34 @@ public class OfferingService {
     }
 
     @Cacheable(value = "offerings")
-    public MessageResponse getOfferings() {
+    public MessageResponse getOfferings(Pageable pageable) {
+        Page<OfferingResponse> offerings = offeringRepository.getAllOfferings(pageable);
 
-        List<OfferingResponse> offerings = offeringRepository.getAllOfferings();
-
-        if (offerings == null || offerings.isEmpty())
+        if (offerings.isEmpty())
             return buildSuccessResponse("offering.getAll.empty", Collections.emptyList());
 
-        List<OfferingResponse> offeringResponses = getImages(offerings);
+        List<OfferingResponse> offeringResponses = getImages(offerings.getContent());
 
-        return buildSuccessResponse("offering.getAll.success", offeringResponses);
+        Map<String, Object> response = Map.of(
+            "content", offeringResponses,
+            "totalElements", offerings.getTotalElements(),
+            "totalPages", offerings.getTotalPages(),
+            "currentPage", offerings.getNumber() + 1,
+            "pageSize", offerings.getSize(),
+            "isFirst", offerings.isFirst(),
+            "isLast", offerings.isLast()
+        );
+
+        return buildSuccessResponse("offering.getAll.success", response);
+    }
+
+    @Cacheable(
+            value = "offerings",
+            key ="'offerings::' + T(java.util.Objects).hash(#offeringFilterRequest)"
+    )
+    public MessageResponse getOfferingsWithFilters(OfferingFilterRequest offeringFilterRequest,
+                                                   Pageable pageable) {
+        return getFilteredOfferings(null, offeringFilterRequest, pageable);
     }
 
     @Cacheable(value = "offering", key = "#offeringId")
@@ -166,29 +201,70 @@ public class OfferingService {
         return buildSuccessResponse("offering.delete.success", null);
     }
 
-    @Cacheable(value = "ownerOfferings", key = "#ownerId")
-    public MessageResponse getOfferingsByOwner(Long ownerId) {
+    @Cacheable(value = "ownerOfferings", key = "#ownerId + '-' + T(java.util.Objects).hash(#offeringFilterRequest)")
+    public MessageResponse getOfferingsByOwner(Long ownerId,
+                                               OfferingFilterRequest offeringFilterRequest,
+                                               Pageable pageable) {
+        return getFilteredOfferings(ownerId, offeringFilterRequest, pageable);
+    }
 
-        List<OfferingResponse> offerings = offeringRepository.findByOwnerId(ownerId);
+    @Cacheable(value = "userOfferings", key = "#currentUser.id + '-' + T(java.util.Objects).hash(#offeringFilterRequest)")
+    public MessageResponse getOfferingsByUser(UserPrinciple currentUser,
+                                              OfferingFilterRequest offeringFilterRequest,
+                                              Pageable pageable) {
+        Owner owner = ownerService.getUserById(currentUser.getProfileId());
+        return getFilteredOfferings(owner.getId(),offeringFilterRequest, pageable);
+    }
+
+    private MessageResponse getFilteredOfferings(Long ownerId,
+                                                 OfferingFilterRequest offeringFilterRequest,
+                                                 Pageable pageable) {
+        String sortBy = pageable.getSort().stream()
+                .findFirst()
+                .map(order -> order.getProperty())
+                .orElse("id");
+                
+        String direction = pageable.getSort().stream()
+                .findFirst()
+                .map(order -> order.getDirection().toString().toLowerCase())
+                .orElse("asc");
+                
+        // Create a new Pageable with the correct sort direction
+        Pageable modifiedPageable = pageable;
+        if ("ratingValue".equals(sortBy)) {
+            Sort.Direction sortDirection = "desc".equals(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+            modifiedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(sortDirection, "id"));
+        }
+
+        Page<OfferingResponse> offerings = OfferingSpecification.findByOfferingsWithFilters(
+                ownerId,
+                offeringFilterRequest.getName(),
+                offeringFilterRequest.getMinPrice(),
+                offeringFilterRequest.getMaxPrice(),
+                offeringFilterRequest.getCategoryName(),
+                offeringFilterRequest.getCurrency(),
+                offeringFilterRequest.getMinRating(),
+                sortBy,
+                direction,
+                modifiedPageable,
+                entityManager);
 
         if (offerings.isEmpty())
             return buildSuccessResponse("offering.getAll.empty", Collections.emptyList());
 
-        List<OfferingResponse> offeringResponses = getImages(offerings);
+        List<OfferingResponse> offeringResponses = getImages(offerings.getContent());
 
-        return buildSuccessResponse("offering.getAll.success", offeringResponses);
-    }
+        Map<String, Object> response = Map.of(
+            "content", offeringResponses,
+            "totalElements", offerings.getTotalElements(),
+            "totalPages", offerings.getTotalPages(),
+            "currentPage", offerings.getNumber() + 1,
+            "pageSize", offerings.getSize(),
+            "isFirst", offerings.isFirst(),
+            "isLast", offerings.isLast()
+        );
 
-    @Cacheable(value = "userOfferings", key = "#currentUser.id")
-    public MessageResponse getOfferingsByUser(UserPrinciple currentUser) {
-
-        Owner owner = ownerService.getUserById(currentUser.getProfileId());
-
-        List<OfferingResponse> offerings = offeringRepository.findByOwnerId(owner.getId());
-
-        List<OfferingResponse> offeringResponses = getImages(offerings);
-
-        return buildSuccessResponse("offering.getAll.success", offeringResponses);
+        return buildSuccessResponse("offering.getAll.success", response);
     }
 
     private List<OfferingResponse> getImages(List<OfferingResponse> offerings) {

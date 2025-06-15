@@ -24,14 +24,14 @@ public class RateResolverFactory {
         }
     }
 
-    public Long createRate(Rating rating) {
-        RateResolver resolver = resolvers.get(rating.getRateableType());
-        if (resolver == null) {
-            throw new IllegalArgumentException("Invalid rate type: " + rating.getRateableType());
-        }
-        return resolver.createRate(rating);
-    }
-    public RateResolver getResolver(String rateableType) {
-        return resolvers.get(rateableType);
-    }
+//    public Long createRate(Rating rating) {
+//        RateResolver resolver = resolvers.get(rating.getRateableType());
+//        if (resolver == null) {
+//            throw new IllegalArgumentException("Invalid rate type: " + rating.getRateableType());
+//        }
+//        return resolver.createRate(rating);
+//    }
+//    public RateResolver getResolver(String rateableType) {
+//        return resolvers.get(rateableType);
+//    }
 }

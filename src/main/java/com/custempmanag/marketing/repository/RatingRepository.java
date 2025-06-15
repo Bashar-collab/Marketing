@@ -33,4 +33,9 @@ public interface RatingRepository extends CrudRepository<Rating, Long> {
     @Query("SELECT COALESCE(AVG(r.ratingValue), 0.0) FROM Rating r WHERE r.rateableId = :id AND r.rateableType = :type")
     Double findAverageByRateableIdAndType(@Param("id") Long id, @Param("type") String type);
 
+    @Query("SELECT r FROM Rating r WHERE r.user = :user AND r.rateableId = :rateableId AND r.rateableType = :rateableType")
+    Optional<Rating> findByUserAndRateableIdAndRateableType(
+            @Param("user") User user,
+            @Param("rateableId") Long rateableId,
+            @Param("rateableType") String rateableType);
 }

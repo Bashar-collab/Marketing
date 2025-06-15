@@ -1,24 +1,36 @@
 package com.custempmanag.marketing.controller;
 
-import com.custempmanag.marketing.config.UserPrinciple;
-import com.custempmanag.marketing.request.OfferingRequest;
-import com.custempmanag.marketing.response.MessageResponse;
-import com.custempmanag.marketing.response.OfferingResponse;
-import com.custempmanag.marketing.service.OfferingService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.attribute.UserPrincipal;
-import java.util.List;
+import com.custempmanag.marketing.config.UserPrinciple;
+import com.custempmanag.marketing.request.OfferingFilterRequest;
+import com.custempmanag.marketing.request.OfferingRequest;
+import com.custempmanag.marketing.response.MessageResponse;
+import com.custempmanag.marketing.service.OfferingService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 /*
     Product Management APIs (Owner Role Required):
@@ -61,9 +73,15 @@ public class OfferingController {
 
     @GetMapping("/offerings")
     @PreAuthorize("hasPermission(null, 'Offering', 'S0') or hasPermission(null, 'Offering', 'S1')")
-    public ResponseEntity<MessageResponse> getOfferings() {
-        logger.info("Retrieving offerings");
-        MessageResponse messageResponse = offeringService.getOfferings();
+    public ResponseEntity<MessageResponse> getOfferings(@ModelAttribute OfferingFilterRequest filterRequest) {
+        logger.info("Retrieving all offerings with filters");
+        Pageable pageable = createPageable(filterRequest.getPage(), filterRequest.getSize(), 
+            filterRequest.getSortBy(), filterRequest.getDirection());
+            
+        MessageResponse messageResponse = offeringService.getOfferingsWithFilters(
+            filterRequest,
+            pageable);
+            
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
@@ -95,21 +113,46 @@ public class OfferingController {
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
-//    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/owners/{ownerId}/offerings")
     @PreAuthorize("hasPermission(null, 'Offering', 'S0') or hasPermission(null, 'Offering', 'S1')")
-    public ResponseEntity<MessageResponse> getOfferingsByOwnerId(@PathVariable Long ownerId) {
-        logger.info("Fetching offering by owner id {}", ownerId);
-        MessageResponse messageResponse = offeringService.getOfferingsByOwner(ownerId);
+    public ResponseEntity<MessageResponse> getOfferingsByOwnerId(
+            @PathVariable Long ownerId,
+            @ModelAttribute OfferingFilterRequest filterRequest) {
+        
+        logger.info("Fetching offerings by owner id {} with filters", ownerId);
+        Pageable pageable = createPageable(filterRequest.getPage(), filterRequest.getSize(), 
+            filterRequest.getSortBy(), filterRequest.getDirection());
+            
+        MessageResponse messageResponse = offeringService.getOfferingsByOwner(
+            ownerId,
+            filterRequest,
+            pageable);
+            
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
     }
 
     @GetMapping("/users/offerings")
-//    @PreAuthorize("hasPermission(null, 'Offering', 'S0') or hasPermission(null, 'Offering', 'S1')")
-    public ResponseEntity<MessageResponse> getOfferingsByUserId(@AuthenticationPrincipal UserPrinciple currentUser) {
-        logger.info("Fetching offering by user {}", currentUser.getId());
-        MessageResponse messageResponse = offeringService.getOfferingsByUser(currentUser);
+    public ResponseEntity<MessageResponse> getOfferingsByUserId(
+            @AuthenticationPrincipal UserPrinciple currentUser,
+            @ModelAttribute OfferingFilterRequest filterRequest) {
+        
+        logger.info("Fetching offerings by user {} with filters", currentUser.getId());
+        Pageable pageable = createPageable(filterRequest.getPage(), filterRequest.getSize(), 
+            filterRequest.getSortBy(), filterRequest.getDirection());
+            
+        MessageResponse messageResponse = offeringService.getOfferingsByUser(
+            currentUser, 
+            filterRequest,
+            pageable);
+            
         return ResponseEntity.status(HttpStatus.OK).body(messageResponse);
+    }
+
+    private Pageable createPageable(int page, int size, String sortBy, String direction) {
+        // Convert 1-based page to 0-based page
+        int zeroBasedPage = Math.max(0, page - 1);
+        Sort.Direction sortDirection = Sort.Direction.fromString(direction.toUpperCase());
+        return PageRequest.of(zeroBasedPage, size, Sort.by(sortDirection, sortBy));
     }
 
 //    @GetMapping("/view-offering")
