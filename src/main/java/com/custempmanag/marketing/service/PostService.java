@@ -46,7 +46,7 @@ public class PostService {
         logger.info("Creating offering for id {}", currentUser.getId());
         User user = userService.validateAndGetUserById(currentUser.getId());
         logger.info("User id {}", user.getId());
-        Owner owner = ownerService.getUserById(user.getProfileId());
+        Owner owner = ownerService.getUserById(user.getId());
         Post post = modelMapper.map(createPostRequest, Post.class);
         post.setOwner(owner);
 
@@ -148,7 +148,7 @@ public class PostService {
     public MessageResponse getPostsByUser(UserPrinciple currentUser) {
         User user = userService.validateAndGetUserById(currentUser.getId());
 
-        Owner owner = ownerService.getUserById(user.getProfileId());
+        Owner owner = ownerService.getUserById(user.getId());
 
         List<Post> posts = postRepository.findByOwnerId(owner.getId());
         return new MessageResponse(HttpStatus.OK.toString(),

@@ -27,7 +27,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "{phone.notblank}")
     @Column(unique = true, name = "phone_number")  // Unique constraint on phone number
-    @Pattern(regexp = "^09\\d{8}$", message = "{phone.pattern}") // Regex for phone number that should start with 09 and should be 10 digits
+    @Pattern(regexp = "^(\\+|00)?[1-9]\\d{7,14}$", message = "{phone.pattern}") // Regex for phone number that should start with 09 and should be 10 digits
     private String phoneNumber;
 
     private String address;

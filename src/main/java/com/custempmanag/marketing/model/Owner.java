@@ -8,6 +8,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.security.Timestamp;
 import java.time.Instant;
 
+import jakarta.persistence.*;
+import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import java.time.Instant;
+
 @Entity
 @Data
 public class Owner {
@@ -15,6 +21,10 @@ public class Owner {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
+
+    @OneToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(columnDefinition = "TEXT")
     private String bio;
@@ -28,5 +38,4 @@ public class Owner {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private Instant updatedAt;
-
 }

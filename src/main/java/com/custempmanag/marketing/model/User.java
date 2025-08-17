@@ -1,8 +1,11 @@
 package com.custempmanag.marketing.model;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import org.checkerframework.common.aliasing.qual.Unique;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,7 +19,7 @@ import java.time.LocalDate;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private long id;
+    private Long id;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -33,11 +36,11 @@ public class User {
     @Column(nullable = false)
     private boolean verified = true;
 
-    @Column(name = "profile_id")
-    private Long profileId;
-
-    @Column(name = "profile_type")
-    private String profileType;
+//    @Column(name = "profile_id")
+//    private Long profileId;
+//
+//    @Column(name = "profile_type")
+//    private String profileType;
 
     @ManyToOne
     @JoinColumn(name = "role_id")

@@ -78,7 +78,7 @@ public class OfferingService {
                                           List<MultipartFile> photos) {
         logger.info("Creating offering for id {}", currentUser.getId());
 
-        Owner owner = ownerService.getUserById(currentUser.getProfileId());
+        Owner owner = ownerService.getUserById(currentUser.getId());
 
         Category category = categoryRepository.findByName(offeringRequest.getCategoryName())
                 .orElseThrow(() -> new
@@ -212,7 +212,7 @@ public class OfferingService {
     public MessageResponse getOfferingsByUser(UserPrinciple currentUser,
                                               OfferingFilterRequest offeringFilterRequest,
                                               Pageable pageable) {
-        Owner owner = ownerService.getUserById(currentUser.getProfileId());
+        Owner owner = ownerService.getUserById(currentUser.getId());
         return getFilteredOfferings(owner.getId(),offeringFilterRequest, pageable);
     }
 

@@ -23,14 +23,14 @@ public class ProfileResolverFactory {
             resolvers.put(resolver.getProfileType(), resolver);
         }
     }
-
-    public Long createProfile(User user) {
-        ProfileResolver resolver = resolvers.get(user.getProfileType());
-        if (resolver == null) {
-            throw new IllegalArgumentException("Invalid profile type: " + user.getProfileType());
-        }
-        return resolver.createProfile(user);
-    }
+//
+//    public Long createProfile(User user) {
+//        ProfileResolver resolver = resolvers.get(user.getProfileType());
+//        if (resolver == null) {
+//            throw new IllegalArgumentException("Invalid profile type: " + user.getProfileType());
+//        }
+//        return resolver.createProfile(user);
+//    }
     public ProfileResolver getResolver(String profileType) {
         return resolvers.get(profileType);
     }

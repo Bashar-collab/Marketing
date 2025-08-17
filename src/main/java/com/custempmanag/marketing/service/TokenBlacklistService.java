@@ -59,7 +59,7 @@ public class TokenBlacklistService {
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(token));
         } catch (Exception e) {
-            log.error("REDIS DOWN! Token {} bypassed (not in Caffeine).", token);
+            log.error("REDIS DOWN! Token bypassed (not in Caffeine).");
             return false; // Allow token (fail-open)
         }
     }

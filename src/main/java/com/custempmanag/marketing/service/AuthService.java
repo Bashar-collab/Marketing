@@ -5,10 +5,9 @@ import com.custempmanag.marketing.config.JwtConfig;
 import com.custempmanag.marketing.config.UserPrinciple;
 import com.custempmanag.marketing.exception.CustomException;
 import com.custempmanag.marketing.exception.ResourceNotFoundException;
-import com.custempmanag.marketing.model.Permission;
-import com.custempmanag.marketing.model.RefreshToken;
-import com.custempmanag.marketing.model.Role;
-import com.custempmanag.marketing.model.User;
+import com.custempmanag.marketing.model.*;
+import com.custempmanag.marketing.repository.CustomerRepository;
+import com.custempmanag.marketing.repository.OwnerRepository;
 import com.custempmanag.marketing.repository.RoleRepository;
 import com.custempmanag.marketing.repository.UserRepository;
 import com.custempmanag.marketing.request.ChangePasswordRequest;
@@ -53,10 +52,15 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenService refreshTokenService;
+    private final UserService userService;
+    private final CustomerRepository customerRepository;
+    private final OwnerRepository ownerRepository;
+
     @Autowired
     private ModelMapper modelMapper;
-    @Autowired
-    private RoleRepository roleRepository;
+
+//    @Autowired
+    private final RoleRepository roleRepository;
 
 //    @Autowired
 //    private FCMService fcmService;
@@ -69,11 +73,64 @@ public class AuthService {
     @Autowired
     private ProfileResolverFactory profileResolverFactory;
 
-    @Autowired
-    private MessageSource messageSource;
-    @Autowired
-    private UserService userService;
+//    @Autowired
+    private final MessageSource messageSource;
 
+//    @Autowired
+//    private UserService userService;
+
+    @Transactional
+    public MessageResponse registerUser2(RegisterRequest registerRequest) {
+        logger.info("Received registration request for user: {}", registerRequest.getUsername());
+
+        if (userRepository.existsByUsername(registerRequest.getUsername())) {
+            logger.info("Username is already in use, try another one");
+
+            throw new
+                    CustomException(messageSource.getMessage("username.register.exists", null, LocaleContextHolder.getLocale()));
+        }
+
+        if (userRepository.existsByPhoneNumber(registerRequest.getPhoneNumber())) {
+            logger.info("Phone number is already in use, try another one");
+            throw new
+                    CustomException(messageSource.getMessage("phone-number.register.exists", null, LocaleContextHolder.getLocale()));
+        }
+
+        Role role = roleRepository.findByName(registerRequest.getProfileType().toUpperCase())
+                .orElseThrow(()-> new CustomException(messageSource.getMessage("role.not.found", null, LocaleContextHolder.getLocale())));
+
+
+        // Create and save the User entity
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setPhoneNumber(registerRequest.getPhoneNumber());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setRole(role);
+        // Set other fields if provided in RegisterRequest (e.g., email, address)
+        user.setAddress(registerRequest.getAddress());
+        User savedUser = userRepository.save(user);
+
+        switch(role.getName().toLowerCase())
+        {
+            case "owner":
+                Owner owner = new Owner();
+                owner.setUser(savedUser);
+                ownerRepository.save(owner);
+                break;
+            case "customer":
+                Customer customer = new Customer();
+                customer.setUser(savedUser);
+                customerRepository.save(customer);
+                break;
+            default:
+                throw new CustomException("Invalid profile type");
+        }
+        return new MessageResponse(HttpStatus.CREATED.toString(),
+                messageSource.getMessage("user.register.success", null, LocaleContextHolder.getLocale()),
+                registerRequest.getUsername());
+    }
+
+    /*
     @Transactional
     public MessageResponse registerUser(RegisterRequest registerRequest)
     {
@@ -117,7 +174,7 @@ public class AuthService {
         String localizedMessage = messageSource.getMessage("user.register.success", null, LocaleContextHolder.getLocale());
         return new MessageResponse(HttpStatus.CREATED.toString(), localizedMessage, user.getUsername());
     }
-
+     */
     @Transactional
     public MessageResponse authenticate(String username, String password) {
 
@@ -129,7 +186,6 @@ public class AuthService {
             throw new CustomException(
                     messageSource.getMessage("auth.password.invalid", null, LocaleContextHolder.getLocale())); // Debug point;
         }
-
 
         User user = optionalUser.get();
         // Debug point
@@ -188,6 +244,13 @@ public class AuthService {
                 CustomException(messageSource.getMessage("auth.password.invalid", null, LocaleContextHolder.getLocale()));
 
     }
+
+    private void simulateDummyPasswordCheck(String password) {
+        // Dummy hash for "dummy_password" generated once with bcrypt
+        String dummyHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5eDIFz2QkZo58W0z8BW1PqNqT5H0i";
+        passwordEncoder.matches(password, dummyHash);
+    }
+
     /*
     public void updateFCMToken(Long userId, String fcmToken) {
         logger.info("Updating FCM token for user ID: {}", userId);
@@ -214,11 +277,5 @@ public class AuthService {
     }
 
      */
-
-    private void simulateDummyPasswordCheck(String password) {
-        // Dummy hash for "dummy_password" generated once with bcrypt
-        String dummyHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoOhi5eDIFz2QkZo58W0z8BW1PqNqT5H0i";
-        passwordEncoder.matches(password, dummyHash);
-    }
 
 }

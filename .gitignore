@@ -32,10 +32,11 @@ build/
 ### VS Code ###
 .vscode/
 
+# Secrets & environment
 src/main/resources/application.properties
 src/main/resources/*.json
-src/main/resources/private.pem
-/resources/public.pem
+src/main/resources/*.pem
+.env
 
 /marketing.log
 /marketing.log.*

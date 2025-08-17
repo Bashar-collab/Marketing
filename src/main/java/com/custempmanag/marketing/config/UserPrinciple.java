@@ -22,7 +22,7 @@ public class UserPrinciple implements UserDetails {
     private final Long id;
     private final String username;
     private final String password;
-    private final Long profileId;
+//    private final Long profileId;
     private final Collection<? extends GrantedAuthority> authorities;
 
     public static UserPrinciple create(User user) {
@@ -33,7 +33,7 @@ public class UserPrinciple implements UserDetails {
                 user.getId(),
                 user.getUsername(),
                 user.getPassword(),
-                user.getProfileId(),
+//                user.getProfileId(),
                 authorities // Or fetch roles
         );
     }

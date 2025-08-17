@@ -1,6 +1,8 @@
 package com.custempmanag.marketing.response;
 
 import com.custempmanag.marketing.model.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -12,7 +14,8 @@ import java.time.Instant;
 
 @Data
 public class UserResponse {
-    private String id;
+
+    private Long id;
 
     private String username;
 
@@ -22,13 +25,20 @@ public class UserResponse {
 
     private String address;
 
+    @JsonIgnore
     private boolean verified;
 
+    @JsonIgnore
     private Long profileId;
 
+    @JsonIgnore
     private String profileType;
 
+    @JsonIgnore
     private Role role;
+
+    @JsonIgnore
+    private String roleName;
 
     private String profilePicture;
 
@@ -37,5 +47,5 @@ public class UserResponse {
     private Instant createdAt;
 
     private Instant updatedAt;
-
 }
+

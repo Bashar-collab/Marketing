@@ -6,9 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 @Configuration
 public class FirebaseConfig {
@@ -21,7 +23,8 @@ public class FirebaseConfig {
             // Check if the default FirebaseApp instance already exists
             if (FirebaseApp.getApps().isEmpty()) {
                 logger.info("Initializing Firebase app...");
-                FileInputStream serviceAccount = new FileInputStream("C:/Users/DELL/IdeaProjects/marketing/src/main/resources/labproject-ae1c5-config.json");
+                InputStream serviceAccount =
+                             new ClassPathResource("labproject-ae1c5-config.json").getInputStream();
 
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(serviceAccount))

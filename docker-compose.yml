@@ -1,20 +1,38 @@
-version: '3'
+version: '3.8'
+
 services:
   app:
-    image: marketing
+    build: .
+    container_name: springboot-app
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/marketing
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/marketing
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:
       - db
+    networks:
+      - spring-net
+
   db:
-    image: postgres:latest
+    image: postgres:17
+    container_name: postgres-db
     environment:
-      POSTGRES_DB: localhost
+      POSTGRES_DB: marketing
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+    networks:
+      - spring-net
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - spring-net
+networks:
+  spring-net:

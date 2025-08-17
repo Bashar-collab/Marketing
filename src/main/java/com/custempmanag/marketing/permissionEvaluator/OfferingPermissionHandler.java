@@ -53,7 +53,7 @@ public class OfferingPermissionHandler implements PermissionHandler {
         }
 
         return offeringRepository.findById(offeringId)
-                .map(offering -> offering.getOwner().getId().equals(userDetails.getProfileId()))
+                .map(offering -> offering.getOwner().getId().equals(userDetails.getId()))
                 .orElse(false);
 
     }
