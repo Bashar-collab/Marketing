@@ -59,9 +59,11 @@ public class SecurityConfig {
                 .cors(withDefaults())
                 .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register",
+                        .requestMatchers("/index.html",
+                                         "/api/auth/register",
                                          "/api/auth/login",
-                                         "/api/files/**").permitAll()
+                                         "/api/files/**",
+                                            "/api/greeting").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

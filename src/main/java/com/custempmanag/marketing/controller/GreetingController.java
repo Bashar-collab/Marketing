@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Locale;
 
 @RestController
-@PreAuthorize("hasRole('ADMIN')")
 public class GreetingController {
 
     @Autowired
